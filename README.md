@@ -21,43 +21,114 @@
 
 ## Απαιτήσεις
 
-- PHP 8.2+ με `pdo_mysql`, `mbstring`, `fileinfo`, `gd`
-- MariaDB ή MySQL 8
+- PHP 8.2+ με `pdo_mysql`, `mbstring`, `fileinfo`, `gd`, `openssl`
+- MariaDB ή MySQL 8, στον ίδιο ή σε άλλον διακομιστή
 - [Composer](https://getcomposer.org)
 - [`qpdf`](https://qpdf.sourceforge.io/) για την προσθήκη της σελίδας QR στο τέλος του PDF
 
 ## Εγκατάσταση σε Apache (Ubuntu)
 
-Στον κατάλογο της εφαρμογής:
+Η βάση μπορεί να είναι ήδη ρυθμισμένη σε άλλον διακομιστή. Στον web server δεν εγκαθίσταται MariaDB ή MySQL. Το `php-mysql` είναι μόνο ο οδηγός σύνδεσης.
+
+### Πακέτα
 
 ```bash
-composer install
-sudo apt install apache2 php-cli php-mysql php-mbstring php-gd php-xml php-zip php-curl qpdf
+sudo apt install apache2 php php-cli php-mysql php-mbstring php-gd php-xml php-zip php-curl unzip qpdf composer
 sudo a2enmod rewrite
+sudo systemctl reload apache2
 ```
 
-Ο δημόσιος κατάλογος του Apache είναι ο φάκελος `public/`. Παράδειγμα ιστότοπου:
+Με το πακέτο `php` έρχονται και τα `fileinfo`, `json` και `openssl`.
+
+### Αρχεία εφαρμογής
+
+Τα αρχεία μπαίνουν στον κατάλογο της εφαρμογής, για παράδειγμα `/var/www/sfragis`. Το `composer install` τρέχει εκεί, όχι μέσα στο `public/`:
+
+```bash
+cd /var/www/sfragis
+composer install --no-dev --optimize-autoloader
+```
+
+Ο Apache τρέχει ως `www-data`. Ο κώδικας μένει στον root και ο `www-data` γράφει μόνο στο `config/` και στο `storage/`:
+
+```bash
+chown -R root:www-data /var/www/sfragis
+find /var/www/sfragis -type d -exec chmod 750 {} \;
+find /var/www/sfragis -type f -exec chmod 640 {} \;
+chown -R www-data:www-data /var/www/sfragis/config /var/www/sfragis/storage
+find /var/www/sfragis/config /var/www/sfragis/storage -type d -exec chmod 750 {} \;
+```
+
+### Ιστότοπος Apache
+
+Ο δημόσιος κατάλογος είναι ο φάκελος `public/`. Το αρχείο μπαίνει στο `/etc/apache2/sites-available/sfragis.conf`:
 
 ```apache
 <VirtualHost *:80>
     ServerName sfragis.example.gr
     DocumentRoot /var/www/sfragis/public
+
     <Directory /var/www/sfragis/public>
+        Options -Indexes +FollowSymLinks
         AllowOverride All
         Require all granted
+        DirectoryIndex index.php
     </Directory>
+
+    ErrorLog ${APACHE_LOG_DIR}/sfragis-error.log
+    CustomLog ${APACHE_LOG_DIR}/sfragis-access.log combined
 </VirtualHost>
 ```
 
-Ο χρήστης του Apache πρέπει να γράφει στους φακέλους `config/` και `storage/`. Την πρώτη φορά ανοίξτε το `setup.php`. Δείχνει ελέγχους για PHP, επεκτάσεις, qpdf, δικαιώματα και όρια μεταφόρτωσης, και έχει ξεχωριστή δοκιμή σύνδεσης MySQL και δοκιμαστική αποστολή SMTP. Μετά δημιουργεί τη βάση, τον πρώτο διαχειριστή και, αν συμπληρώθηκαν, τις ρυθμίσεις email. Ο οδηγός κλειδώνει και δεν ξανατρέχει.
+```bash
+sudo a2ensite sfragis
+sudo apache2ctl configtest
+sudo systemctl reload apache2
+```
 
-Για δοκιμή με τον ενσωματωμένο διακομιστή:
+Το `AllowOverride All` χρειάζεται για το `public/.htaccess`. Το `setup.php` σερβίρεται ως κανονικό αρχείο. Τα όρια μεταφόρτωσης είναι ήδη στο `public/.user.ini` (`upload_max_filesize = 21M`, `post_max_size = 24M`).
+
+### AppArmor και qpdf
+
+Σε Ubuntu 25.10 και νεότερα το `qpdf` περιορίζεται από το AppArmor και δεν διαβάζει αρχεία κάτω από το `/var/www`. Η επικύρωση τότε αποτυγχάνει με το μήνυμα «Το PDF δεν μπόρεσε να σφραγιστεί», ακόμη και όταν το PDF είναι έγκυρο και χωρίς κωδικό.
+
+Ελέγξτε ότι το `/etc/apparmor.d/qpdf` περιέχει τη γραμμή `include if exists <local/qpdf>` και προσθέστε τοπική εξαίρεση για τον κατάλογο εγκατάστασης:
+
+```bash
+sudo mkdir -p /etc/apparmor.d/local
+sudo tee /etc/apparmor.d/local/qpdf >/dev/null <<'EOF'
+/var/www/sfragis/storage/pdfs/** rw,
+/var/www/sfragis/storage/tmp/** rw,
+EOF
+sudo apparmor_parser -r /etc/apparmor.d/qpdf
+```
+
+Αν η εφαρμογή είναι αλλού, αλλάξτε τη διαδρομή. Δεν χρειάζεται επανεκκίνηση του Apache. Άρνηση φαίνεται με:
+
+```bash
+sudo aa-status | grep qpdf
+sudo dmesg -T | grep -i apparmor | grep qpdf | tail
+```
+
+### Βάση
+
+Στον SQL server η βάση δημιουργείται ως `utf8mb4` με collation `utf8mb4_unicode_ci`:
+
+```sql
+CREATE DATABASE sfragis CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+Ο χρήστης της βάσης χρειάζεται `SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, ALTER, INDEX` σε αυτή τη βάση, και πρέπει να δέχεται σύνδεση από τη διεύθυνση του web server. Δικαίωμα δημιουργίας νέας βάσης χρειάζεται μόνο αν στο `setup.php` δηλωθεί βάση που δεν υπάρχει ακόμα. Οι στήλες των QR και των αποτυπωμάτων ορίζονται από το schema ως `ascii` / `ascii_bin`.
+
+### Πρώτη εκτέλεση
+
+Ανοίξτε το `setup.php`. Δείχνει ελέγχους για PHP, επεκτάσεις, qpdf, δικαιώματα και όρια μεταφόρτωσης, και έχει ξεχωριστή δοκιμή σύνδεσης MySQL και δοκιμαστική αποστολή SMTP. Μετά δημιουργεί τους πίνακες, τον πρώτο διαχειριστή και, αν συμπληρώθηκαν, τις ρυθμίσεις email. Ο οδηγός κλειδώνει και δεν ξανατρέχει.
+
+Για δοκιμή με τον ενσωματωμένο διακομιστή, χωρίς Apache:
 
 ```bash
 php -d upload_max_filesize=21M -d post_max_size=24M -S 127.0.0.1:8080 -t public public/router.php
 ```
-
-Ο χρήστης της βάσης χρειάζεται δικαιώματα `SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, ALTER, INDEX`. Το `CREATE` σε επίπεδο διακομιστή χρειάζεται μόνο για το κουμπί αρχικοποίησης νέας βάσης.
 
 ## Παράμετροι
 
