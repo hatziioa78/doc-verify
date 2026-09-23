@@ -17,7 +17,7 @@ final class Csrf
         $sent = (string) ($_POST['_csrf'] ?? '');
         if ($sent === '' || !hash_equals(self::token(), $sent)) {
             flash('danger', 'Η φόρμα έληξε για λόγους ασφάλειας. Δοκιμάστε ξανά.');
-            $fallback = Config::installed() && !empty($_SESSION['uid']) ? '/' : (Config::setupAllowed() ? '/setup' : '/login');
+            $fallback = Config::installed() && !empty($_SESSION['uid']) ? '/' : (Config::setupAllowed() ? '/setup.php' : '/login');
             redirect($fallback);
         }
     }

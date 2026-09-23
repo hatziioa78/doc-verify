@@ -26,13 +26,30 @@
 - [Composer](https://getcomposer.org)
 - [`qpdf`](https://qpdf.sourceforge.io/) για την προσθήκη της σελίδας QR στο τέλος του PDF
 
-## Εγκατάσταση
+## Εγκατάσταση σε Apache (Ubuntu)
+
+Στον κατάλογο της εφαρμογής:
 
 ```bash
 composer install
+sudo apt install apache2 php-cli php-mysql php-mbstring php-gd php-xml php-zip php-curl qpdf
+sudo a2enmod rewrite
 ```
 
-Δώστε στον χρήστη της MySQL δικαίωμα `CREATE` στη βάση που θα δηλωθεί. Ορίστε τον δημόσιο κατάλογο στον φάκελο `public/` και ανοίξτε τον ιστότοπο. Ο οδηγός `/setup` ζητά τα στοιχεία MySQL, δημιουργεί τη βάση και τον πρώτο διαχειριστή, και μετά κλειδώνει.
+Ο δημόσιος κατάλογος του Apache είναι ο φάκελος `public/`. Παράδειγμα ιστότοπου:
+
+```apache
+<VirtualHost *:80>
+    ServerName sfragis.example.gr
+    DocumentRoot /var/www/sfragis/public
+    <Directory /var/www/sfragis/public>
+        AllowOverride All
+        Require all granted
+    </Directory>
+</VirtualHost>
+```
+
+Ο χρήστης του Apache πρέπει να γράφει στους φακέλους `config/` και `storage/`. Την πρώτη φορά ανοίξτε το `setup.php`. Δείχνει ελέγχους για PHP, επεκτάσεις, qpdf, δικαιώματα και όρια μεταφόρτωσης, και έχει ξεχωριστή δοκιμή σύνδεσης MySQL και δοκιμαστική αποστολή SMTP. Μετά δημιουργεί τη βάση, τον πρώτο διαχειριστή και, αν συμπληρώθηκαν, τις ρυθμίσεις email. Ο οδηγός κλειδώνει και δεν ξανατρέχει.
 
 Για δοκιμή με τον ενσωματωμένο διακομιστή:
 

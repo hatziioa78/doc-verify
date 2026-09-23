@@ -20,7 +20,7 @@ function today(): string
 function base_path(): string
 {
     $script = str_replace('\\', '/', (string) ($_SERVER['SCRIPT_NAME'] ?? '/index.php'));
-    if (!in_array(basename($script), ['index.php', 'router.php'], true)) {
+    if (!in_array(basename($script), ['index.php', 'router.php', 'setup.php'], true)) {
         return '';
     }
     $dir = rtrim(str_replace('\\', '/', dirname($script)), '/');

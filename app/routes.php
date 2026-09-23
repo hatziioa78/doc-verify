@@ -18,18 +18,12 @@ function dispatch(string $method, string $path): void
             require BASE_PATH . '/views/errors/locked.php';
             exit;
         }
-        if ($method === 'GET' && $path === '/setup') {
-            SetupController::form();
-        }
-        if ($method === 'POST' && $path === '/setup/test') {
-            SetupController::test();
-        }
-        if ($method === 'POST' && $path === '/setup/install') {
-            SetupController::install();
-        }
-        redirect('/setup');
+        redirect('/setup.php');
     }
 
+    if ($method === 'GET' && $path === '/setup') {
+        redirect('/setup.php');
+    }
     if ($method === 'GET' && $path === '/login') {
         AuthController::loginForm();
     }
