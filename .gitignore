@@ -1,0 +1,14 @@
+/vendor/
+/config/config.php
+/storage/install.lock
+/storage/pdfs/originals/*
+/storage/pdfs/certified/*
+/storage/backups/*
+/storage/logs/*
+/storage/tmp/*
+!/storage/pdfs/originals/.gitkeep
+!/storage/pdfs/certified/.gitkeep
+!/storage/backups/.gitkeep
+!/storage/logs/.gitkeep
+!/storage/tmp/.gitkeep
+.DS_Store

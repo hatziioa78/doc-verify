@@ -1,0 +1,16 @@
+{
+    "name": "sfragis/doc-verify",
+    "description": "ΣΦΡΑΓΙΣ — ψηφιακή επικύρωση εγγράφων PDF με QR",
+    "type": "project",
+    "require": {
+        "php": ">=8.2",
+        "ext-fileinfo": "*",
+        "ext-gd": "*",
+        "ext-mbstring": "*",
+        "ext-pdo": "*",
+        "tecnickcom/tcpdf": "^6.7"
+    },
+    "config": {
+        "sort-packages": true
+    }
+}
