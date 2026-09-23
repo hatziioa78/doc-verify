@@ -468,8 +468,13 @@ button, input, select, textarea { font: inherit; }
 }
 .guest-flash { max-width: 1100px; margin: 1rem auto 0; padding: 0 1rem; }
 .login-shell, .setup-shell { max-width: 1100px; margin: 0 auto; padding: 2rem 1rem 3rem; }
-.login-shell {
+.login-page {
     min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+.login-shell {
+    flex: 1;
     display: grid;
     grid-template-columns: 1.1fr .9fr;
     gap: 2rem;
@@ -511,6 +516,14 @@ button, input, select, textarea { font: inherit; }
     box-shadow: var(--shadow);
 }
 .login-card h2 { margin-top: 0; font-size: 2rem; }
+.login-credit {
+    margin: 0 1rem 1rem auto;
+    width: min(42%, 28rem);
+    text-align: center;
+    font-size: .75rem;
+    line-height: 1.4;
+    color: rgba(16, 32, 51, .62);
+}
 .setup-shell { color: var(--ink); }
 .setup-shell .page-head, .setup-shell .lede { color: #f6f1e7; }
 .setup-grid { display: grid; gap: 1rem; }
@@ -609,6 +622,11 @@ button, input, select, textarea { font: inherit; }
     .login-shell, .split-panels, .doc-hero, .meta-grid, .cert-grid { grid-template-columns: 1fr; }
     .guest-body { background: #102033; }
     .login-version { color: rgba(246, 241, 231, .42); }
+    .login-credit {
+        width: auto;
+        margin: 0 1rem 1.2rem;
+        color: rgba(246, 241, 231, .68);
+    }
     .login-panel { padding-top: 1rem; }
     .app-content, .topbar { padding-left: 1rem; padding-right: 1rem; }
 }
