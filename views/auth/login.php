@@ -1,3 +1,4 @@
+<div class="login-page">
 <div class="login-shell">
     <section class="login-panel">
         <div class="seal-lockup">
@@ -30,4 +31,6 @@
             <button class="btn btn-seal btn-lg w-100" type="submit">Είσοδος</button>
         </form>
     </section>
+</div>
+<p class="login-credit">© <?= e(date('Y')) ?> Χατζηιωαννίδης Χρήστος - Δ.Δ.Ε. Φλώρινας</p>
 </div>
