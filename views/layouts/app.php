@@ -21,9 +21,9 @@ $org = Settings::headerName();
     <aside class="sidebar" data-sidebar>
         <a class="brand" href="<?= e(url('/')) ?>">
             <span class="brand-seal">ΣΦ</span>
-            <span>
+            <span class="brand-text">
                 <span class="brand-mark">ΣΦΡΑΓΙΣ</span>
-                <span class="brand-official">Επίσημη κεφαλίδα</span>
+                <span class="brand-org"><?= e($org) ?></span>
             </span>
         </a>
         <nav class="side-nav" aria-label="Κύρια πλοήγηση">

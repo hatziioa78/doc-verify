@@ -5,16 +5,14 @@
         <div class="seal-lockup">
             <span class="brand-seal brand-seal-lg">ΣΦ</span>
             <h1>ΣΦΡΑΓΙΣ</h1>
-            <p class="login-official">Επίσημη κεφαλίδα</p>
-            <?php if (Settings::headerName() !== 'ΣΦΡΑΓΙΣ'): ?>
-                <p class="login-org"><?= e(Settings::headerName()) ?></p>
-            <?php endif; ?>
-            <p class="lede">Κάθε έγγραφο κλείνει με έναν σύνδεσμο που δεν μαντεύεται. Όποιος σαρώνει τον κωδικό βλέπει αν είναι γνήσιο, ακυρωμένο ή αν έχει λήξει.</p>
+            <p class="login-org"><?= e(Settings::headerName()) ?></p>
+            <p class="lede">Βάζετε σφραγίδα σε ένα PDF. Όποιος σαρώνει τον κωδικό βλέπει αν το έγγραφο είναι γνήσιο.</p>
         </div>
         <ul class="trust-list">
-            <li><?= icon('shield') ?> <span>Σύνδεσμος 256 bit, μοναδικός για κάθε PDF.</span></li>
-            <li><?= icon('ban') ?> <span>Ακύρωση με προαιρετική αιτία, ορατή στο QR.</span></li>
-            <li><?= icon('log') ?> <span>Καταγραφή σύνδεσης, μεταφόρτωσης και προβολής.</span></li>
+            <li><?= icon('shield') ?> <span>Η σφραγίδα μπαίνει πάνω, κάτω ή σε χωριστή σελίδα.</span></li>
+            <li><?= icon('ban') ?> <span>Φαίνεται αν ισχύει, αν έληξε ή αν ακυρώθηκε.</span></li>
+            <li><?= icon('files') ?> <span>Κάθε έγγραφο έχει τον δικό του κωδικό.</span></li>
+            <li><?= icon('log') ?> <span>Μένει ποιος το κατέθεσε και ποιος το είδε.</span></li>
         </ul>
     </section>
     <section class="login-card">
