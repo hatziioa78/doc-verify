@@ -144,4 +144,4 @@ php -d upload_max_filesize=21M -d post_max_size=24M -S 127.0.0.1:8080 -t public 
 
 ## Άδειες
 
-Bootstrap 5 (MIT), Literata και Source Sans 3 (OFL), TCPDF (LGPL-3.0), PHPMailer (LGPL-2.1).
+Bootstrap 5 (MIT), GFS Didot και Source Sans 3 (OFL), TCPDF (LGPL-3.0), PHPMailer (LGPL-2.1).
