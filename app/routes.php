@@ -45,6 +45,9 @@ function dispatch(string $method, string $path): void
     if ($method === 'GET' && preg_match('#^/v/([^/]+)/download$#', $path, $matches)) {
         VerifyController::download($matches[1]);
     }
+    if ($method === 'GET' && preg_match('#^/a/([a-f0-9]{64})$#', $path, $matches)) {
+        ApprovalController::magic($matches[1]);
+    }
     if ($method === 'GET' && $path === '/') {
         DashboardController::index();
     }
@@ -57,8 +60,23 @@ function dispatch(string $method, string $path): void
     if ($method === 'POST' && $path === '/documents') {
         DocumentController::store();
     }
+    if ($method === 'GET' && $path === '/approvals') {
+        ApprovalController::index();
+    }
+    if ($method === 'GET' && preg_match('#^/documents/(\d+)/edit$#', $path, $matches)) {
+        DocumentController::editForm((int) $matches[1]);
+    }
+    if ($method === 'POST' && preg_match('#^/documents/(\d+)$#', $path, $matches)) {
+        DocumentController::update((int) $matches[1]);
+    }
+    if ($method === 'POST' && preg_match('#^/documents/(\d+)/approve$#', $path, $matches)) {
+        ApprovalController::approve((int) $matches[1]);
+    }
     if ($method === 'GET' && preg_match('#^/documents/(\d+)$#', $path, $matches)) {
         DocumentController::show((int) $matches[1]);
+    }
+    if ($method === 'GET' && preg_match('#^/documents/(\d+)/original$#', $path, $matches)) {
+        DocumentController::original((int) $matches[1]);
     }
     if ($method === 'GET' && preg_match('#^/documents/(\d+)/download$#', $path, $matches)) {
         DocumentController::download((int) $matches[1]);
@@ -107,6 +125,12 @@ function dispatch(string $method, string $path): void
     }
     if ($method === 'POST' && $path === '/settings/profile') {
         SettingsController::saveProfile();
+    }
+    if ($method === 'POST' && $path === '/settings/mail') {
+        SettingsController::saveMail();
+    }
+    if ($method === 'POST' && $path === '/settings/mail/test') {
+        SettingsController::testMail();
     }
     if ($method === 'POST' && $path === '/settings/networks') {
         SettingsController::saveNetworks();

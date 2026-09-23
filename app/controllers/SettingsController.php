@@ -24,6 +24,7 @@ final class SettingsController
         $actor = Auth::requireManager();
         $header = post_string('header_name', 120);
         $site = rtrim(post_string('site_url', 255), '/');
+        $server = rtrim(post_string('server_url', 255), '/');
         $contact = post_string('footer_contact', 500);
         $credits = post_string('footer_credits', 500);
         $months = (int) post_raw('default_validity_months');
@@ -32,7 +33,10 @@ final class SettingsController
             $errors[] = 'Συμπληρώστε το όνομα της κεφαλίδας.';
         }
         if (!SetupController::validSiteUrl($site)) {
-            $errors[] = 'Το URL του ιστοτόπου πρέπει να αρχίζει από http:// ή https://.';
+            $errors[] = 'Το URL του QR πρέπει να αρχίζει από http:// ή https://.';
+        }
+        if (!SetupController::validSiteUrl($server)) {
+            $errors[] = 'Το URL του διακομιστή πρέπει να αρχίζει από http:// ή https://.';
         }
         if ($months < 1 || $months > 120) {
             $errors[] = 'Η προεπιλεγμένη διάρκεια ισχύος πρέπει να είναι από 1 έως 120 μήνες.';
@@ -44,12 +48,67 @@ final class SettingsController
         Settings::setMany([
             'header_name' => $header,
             'site_url' => $site,
+            'server_url' => $server,
             'footer_contact' => $contact,
             'footer_credits' => $credits,
             'default_validity_months' => (string) $months,
         ]);
-        Logger::record((int) $actor['id'], 'settings', 'Ενημέρωση εμφάνισης και προεπιλεγμένης ισχύος');
-        flash('success', 'Οι παράμετροι εμφάνισης αποθηκεύτηκαν. Τα νέα QR χρησιμοποιούν το δηλωμένο URL.');
+        Logger::record((int) $actor['id'], 'settings', 'Ενημέρωση εμφάνισης, URL QR και URL διακομιστή');
+        flash('success', 'Οι παράμετροι αποθηκεύτηκαν. Τα νέα QR χρησιμοποιούν το URL του QR και τα email το URL του διακομιστή.');
+        redirect('/settings');
+    }
+
+    public static function saveMail(): void
+    {
+        $actor = Auth::requireManager();
+        $mail = self::mailFromPost();
+        $errors = self::mailErrors($mail, false);
+        if ($errors !== []) {
+            flash('danger', implode(' ', $errors));
+            redirect('/settings');
+        }
+        Settings::setMany([
+            'smtp_host' => $mail['host'],
+            'smtp_port' => (string) $mail['port'],
+            'smtp_username' => $mail['username'],
+            'smtp_password' => $mail['password'],
+            'smtp_from_name' => $mail['from_name'],
+            'smtp_from_email' => $mail['from_email'],
+            'smtp_security' => $mail['security'],
+            'notify_secretary' => $mail['notify_secretary'],
+            'notify_extra' => $mail['notify_extra'],
+            'notify_extra_email' => $mail['notify_extra_email'],
+        ]);
+        Logger::record((int) $actor['id'], 'settings', 'Ενημέρωση ρυθμίσεων email');
+        flash('success', 'Οι ρυθμίσεις email αποθηκεύτηκαν.');
+        redirect('/settings');
+    }
+
+    public static function testMail(): void
+    {
+        $actor = Auth::requireManager();
+        $mail = self::mailFromPost();
+        $errors = self::mailErrors($mail, true);
+        if ($errors !== []) {
+            flash('danger', implode(' ', $errors));
+            redirect('/settings');
+        }
+        try {
+            Mailer::send(
+                $mail,
+                (string) $actor['email'],
+                'Δοκιμαστικό μήνυμα ΣΦΡΑΓΙΣ',
+                '<p>Αυτό είναι δοκιμαστικό μήνυμα από το ΣΦΡΑΓΙΣ.</p><p><a href="' . e(Settings::serverUrl()) . '">Πατήστε εδώ</a></p>',
+                "Αυτό είναι δοκιμαστικό μήνυμα από το ΣΦΡΑΓΙΣ.\nΠατήστε εδώ: " . Settings::serverUrl() . "\n"
+            );
+        } catch (Throwable $e) {
+            log_exception($e);
+            Logger::record((int) $actor['id'], 'mail_test', 'Ανεπιτυχής δοκιμή email προς ' . $actor['email']);
+            flash('danger', $e instanceof RuntimeException ? $e->getMessage() : 'Η δοκιμή email απέτυχε.');
+            redirect('/settings');
+        }
+        Logger::record((int) $actor['id'], 'mail_test', 'Επιτυχής δοκιμή email προς ' . $actor['email']);
+        flash('success', 'Το δοκιμαστικό μήνυμα στάλθηκε στο ' . $actor['email'] . '.');
         redirect('/settings');
     }
 
@@ -85,8 +144,8 @@ final class SettingsController
         NetworkGuard::replace($networks);
         Logger::record((int) $actor['id'], 'network', 'Ενημέρωση επιτρεπόμενων δικτύων (' . count($networks) . ')');
         flash('success', count($networks) === 0
-            ? 'Τα δίκτυα αφαιρέθηκαν. Οι χρήστες μπορούν προσωρινά να συνδεθούν από οποιαδήποτε διεύθυνση.'
-            : 'Τα εσωτερικά δίκτυα ενημερώθηκαν. Οι χρήστες συνδέονται μόνο από αυτά.');
+            ? 'Τα δίκτυα αφαιρέθηκαν. Οι χρήστες και η γραμματεία μπορούν προσωρινά να συνδεθούν από οποιαδήποτε διεύθυνση.'
+            : 'Τα εσωτερικά δίκτυα ενημερώθηκαν. Οι χρήστες και η γραμματεία συνδέονται με κωδικό μόνο από αυτά.');
         redirect('/settings');
     }
 
@@ -240,6 +299,62 @@ final class SettingsController
         redirect('/settings');
     }
 
+    private static function mailFromPost(): array
+    {
+        $security = post_string('smtp_security', 10);
+        if (!in_array($security, ['tls', 'ssl', 'none'], true)) {
+            $security = 'tls';
+        }
+        $password = post_raw('smtp_password');
+        if ($password === '') {
+            $password = Settings::secret('smtp_password');
+        }
+        $port = (int) post_raw('smtp_port');
+        if ($port === 0) {
+            $port = 587;
+        }
+        $mail = Mailer::normalize([
+            'host' => post_string('smtp_host', 253),
+            'port' => $port,
+            'username' => post_string('smtp_username', 190),
+            'password' => $password,
+            'from_name' => post_string('smtp_from_name', 120),
+            'from_email' => post_string('smtp_from_email', 190),
+            'security' => $security,
+        ]);
+        $mail['notify_secretary'] = post_raw('notify_secretary') === '1' ? '1' : '0';
+        $mail['notify_extra'] = post_raw('notify_extra') === '1' ? '1' : '0';
+        $mail['notify_extra_email'] = normalize_email(post_string('notify_extra_email', 190));
+        return $mail;
+    }
+
+    private static function mailErrors(array $mail, bool $requireReady): array
+    {
+        $errors = [];
+        $wantsSend = ($mail['notify_secretary'] ?? '0') === '1' || ($mail['notify_extra'] ?? '0') === '1';
+        if ($requireReady || $mail['host'] !== '' || $wantsSend) {
+            if (!valid_host($mail['host'])) {
+                $errors[] = 'Ο διακομιστής SMTP δεν είναι έγκυρος.';
+            }
+            if ($mail['port'] < 1 || $mail['port'] > 65535) {
+                $errors[] = 'Η θύρα SMTP πρέπει να είναι από 1 έως 65535.';
+            }
+            if (mb_strlen($mail['from_name']) < 2) {
+                $errors[] = 'Συμπληρώστε το όνομα αποστολέα.';
+            }
+            if (!valid_email($mail['from_email'])) {
+                $errors[] = 'Το email αποστολέα δεν είναι έγκυρο.';
+            }
+        }
+        if (strlen($mail['password']) > 200) {
+            $errors[] = 'Ο κωδικός SMTP είναι πολύ μεγάλος.';
+        }
+        if (($mail['notify_extra'] ?? '0') === '1' && !valid_email((string) $mail['notify_extra_email'])) {
+            $errors[] = 'Συμπληρώστε έγκυρο email για την επιπλέον προώθηση.';
+        }
+        return $errors;
+    }
+
     private static function dbFromPost(): array
     {
         $current = Config::db();
@@ -261,6 +376,7 @@ final class SettingsController
         }
         Settings::setMany([
             'site_url' => current_origin(),
+            'server_url' => current_origin(),
             'header_name' => 'ΣΦΡΑΓΙΣ',
             'footer_contact' => '',
             'footer_credits' => '',

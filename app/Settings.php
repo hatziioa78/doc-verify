@@ -18,10 +18,21 @@ final class Settings
         }
         $defaults = [
             'site_url' => '',
+            'server_url' => '',
             'header_name' => 'ΣΦΡΑΓΙΣ',
             'footer_contact' => '',
             'footer_credits' => '',
             'default_validity_months' => '12',
+            'smtp_host' => '',
+            'smtp_port' => '587',
+            'smtp_username' => '',
+            'smtp_password' => '',
+            'smtp_from_name' => '',
+            'smtp_from_email' => '',
+            'smtp_security' => 'tls',
+            'notify_secretary' => '0',
+            'notify_extra' => '0',
+            'notify_extra_email' => '',
         ];
         if (!Config::installed()) {
             self::$cache = $defaults;
@@ -44,6 +55,17 @@ final class Settings
         $all = self::all();
         $value = trim((string) ($all[$key] ?? ''));
         return $value === '' ? $default : $value;
+    }
+
+    public static function secret(string $key): string
+    {
+        $all = self::all();
+        return (string) ($all[$key] ?? '');
+    }
+
+    public static function flag(string $key): bool
+    {
+        return self::get($key, '0') === '1';
     }
 
     public static function setMany(array $pairs): void
@@ -70,6 +92,15 @@ final class Settings
             return rtrim($configured, '/');
         }
         return current_origin();
+    }
+
+    public static function serverUrl(): string
+    {
+        $configured = self::get('server_url', '');
+        if ($configured !== '') {
+            return rtrim($configured, '/');
+        }
+        return self::siteUrl();
     }
 
     public static function validityMonths(): int

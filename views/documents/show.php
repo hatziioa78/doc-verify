@@ -4,6 +4,9 @@ $owner = trim((string) $doc['last_name'] . ' ' . (string) $doc['first_name']);
 $canceller = trim((string) ($doc['canceller_last_name'] ?? '') . ' ' . (string) ($doc['canceller_first_name'] ?? ''));
 ?>
 <?php page_head('Έγγραφο μητρώου', (string) $doc['subject'], 'Η σελίδα επαλήθευσης είναι η ζωντανή εικόνα του εγγράφου. Η ακύρωση φαίνεται αμέσως σε όποιον σαρώνει το QR.'); ?>
+<?php if ($state === 'pending'): ?>
+    <div class="alert alert-warning">Το έγγραφο αναμένει επιβεβαίωση από τη Γραμματεία. Δεν έχει σφραγιστεί και δεν εμφανίζεται στον δημόσιο έλεγχο.</div>
+<?php endif; ?>
 <section class="doc-hero paper-card">
     <div>
         <span class="status-pill <?= e(state_class($state)) ?>"><?= e(state_label($state)) ?></span>
@@ -20,6 +23,9 @@ $canceller = trim((string) ($doc['canceller_last_name'] ?? '') . ' ' . (string) 
             <div><dt>Καταχώρηση</dt><dd><?= e(fmt_dt((string) $doc['registered_at'])) ?></dd></div>
             <div><dt>Έγκυρο έως</dt><dd><?= e(fmt_date((string) $doc['valid_until'])) ?></dd></div>
             <div><dt>Καταχωρίστηκε από</dt><dd><?= e($owner) ?><small><?= e((string) $doc['owner_email']) ?></small></dd></div>
+            <?php if (!empty($doc['confirmed_by'])): ?>
+                <div><dt>Επιβεβαιώθηκε από</dt><dd><?= e(trim((string) $doc['confirmer_last_name'] . ' ' . (string) $doc['confirmer_first_name'])) ?><small><?= e(fmt_dt((string) $doc['confirmed_at'])) ?></small></dd></div>
+            <?php endif; ?>
             <div><dt>Αρχικό αρχείο</dt><dd><?= e((string) $doc['original_name']) ?></dd></div>
         </dl>
         <h2>Πληροφορίες</h2>
@@ -27,13 +33,30 @@ $canceller = trim((string) ($doc['canceller_last_name'] ?? '') . ' ' . (string) 
         <p class="hash-line"><span>SHA-256 αρχικού PDF</span><code id="doc-hash"><?= e((string) $doc['sha256']) ?></code></p>
     </div>
     <aside class="qr-panel">
-        <img src="<?= e(url('/documents/' . $doc['id'] . '/qr.png')) ?>" alt="Κωδικός QR επαλήθευσης" width="220" height="220">
-        <label class="form-label" for="verify-url">Σύνδεσμος επαλήθευσης</label>
-        <input class="form-control" id="verify-url" readonly value="<?= e($verifyUrl) ?>">
-        <button class="btn btn-ghost" type="button" data-copy="#verify-url">Αντιγραφή συνδέσμου</button>
-        <a class="btn btn-seal" href="<?= e(url('/documents/' . $doc['id'] . '/download')) ?>"><?= icon('download') ?> Λήψη σφραγισμένου PDF</a>
+        <?php if ($state === 'pending'): ?>
+            <p>Ο κωδικός QR δημιουργείται μετά την επιβεβαίωση από τη Γραμματεία.</p>
+            <a class="btn btn-ghost" href="<?= e(url('/documents/' . $doc['id'] . '/original')) ?>"><?= icon('download') ?> Λήψη πρωτοτύπου</a>
+            <?php if ($canApprove): ?>
+                <form method="post" action="<?= e(url('/documents/' . $doc['id'] . '/approve')) ?>">
+                    <?= csrf_field() ?>
+                    <button class="btn btn-seal" type="submit">Επιβεβαίωση και σφράγιση</button>
+                </form>
+            <?php endif; ?>
+        <?php else: ?>
+            <img src="<?= e(url('/documents/' . $doc['id'] . '/qr.png')) ?>" alt="Κωδικός QR επαλήθευσης" width="220" height="220">
+            <label class="form-label" for="verify-url">Σύνδεσμος επαλήθευσης</label>
+            <input class="form-control" id="verify-url" readonly value="<?= e($verifyUrl) ?>">
+            <button class="btn btn-ghost" type="button" data-copy="#verify-url">Αντιγραφή συνδέσμου</button>
+            <a class="btn btn-seal" href="<?= e(url('/documents/' . $doc['id'] . '/download')) ?>"><?= icon('download') ?> Λήψη σφραγισμένου PDF</a>
+            <a class="btn btn-ghost" href="<?= e(url('/documents/' . $doc['id'] . '/original')) ?>">Λήψη πρωτοτύπου</a>
+        <?php endif; ?>
     </aside>
 </section>
+<?php if ($canModify): ?>
+    <div class="action-row">
+        <a class="btn btn-ink" href="<?= e(url('/documents/' . $doc['id'] . '/edit')) ?>">Επεξεργασία στοιχείων</a>
+    </div>
+<?php endif; ?>
 <?php if ($canModify && $state !== 'cancelled'): ?>
     <div class="action-row">
         <button class="btn btn-wax" type="button" data-bs-toggle="modal" data-bs-target="#cancelModal">Ακύρωση εγγράφου</button>
@@ -44,7 +67,7 @@ $canceller = trim((string) ($doc['canceller_last_name'] ?? '') . ' ' . (string) 
         <button class="btn btn-ghost" type="button" data-bs-toggle="modal" data-bs-target="#deleteModal">Διαγραφή</button>
     </div>
 <?php else: ?>
-    <p class="field-hint">Μπορείτε να δείτε και να κατεβάσετε το έγγραφο. Ακύρωση και διαγραφή επιτρέπονται μόνο στον κάτοχο ή στον διαχειριστή.</p>
+    <p class="field-hint">Μπορείτε να δείτε το έγγραφο. Επεξεργασία, ακύρωση και διαγραφή επιτρέπονται στον κάτοχο, στη Γραμματεία και στον διαχειριστή.</p>
 <?php endif; ?>
 
 <div class="modal fade" id="cancelModal" tabindex="-1" aria-labelledby="cancelTitle" aria-hidden="true">

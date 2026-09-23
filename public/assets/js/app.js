@@ -54,6 +54,17 @@
         });
     });
 
+    const roleSelect = document.querySelector("#role");
+    const userOnly = document.querySelector("[data-user-only]");
+    const syncRole = () => {
+        if (!roleSelect || !userOnly) {
+            return;
+        }
+        userOnly.hidden = roleSelect.value !== "user";
+    };
+    roleSelect?.addEventListener("change", syncRole);
+    syncRole();
+
     document.querySelector("[data-add-network]")?.addEventListener("click", () => {
         const list = document.querySelector("[data-network-list]");
         const row = list?.querySelector(".network-row");

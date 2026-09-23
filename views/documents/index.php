@@ -1,4 +1,4 @@
-<?php page_head('Μητρώο', 'Όλα τα έγγραφα', 'Αναζήτηση σε όλο το μητρώο. Ακύρωση και διαγραφή επιτρέπονται μόνο στα δικά σας έγγραφα, εκτός αν είστε διαχειριστής.'); ?>
+<?php page_head('Μητρώο', 'Όλα τα έγγραφα', 'Αναζήτηση σε όλο το μητρώο. Επεξεργασία, ακύρωση και διαγραφή επιτρέπονται στον κάτοχο, στη Γραμματεία και στον διαχειριστή.'); ?>
 <form class="paper-card filter-card" method="get" action="<?= e(url('/documents')) ?>">
     <div class="row g-3">
         <div class="col-md-4">
@@ -25,6 +25,7 @@
             <label class="form-label" for="status">Κατάσταση</label>
             <select class="form-select" id="status" name="status">
                 <option value="" <?= $filters['status'] === '' ? 'selected' : '' ?>>Όλες</option>
+                <option value="pending" <?= $filters['status'] === 'pending' ? 'selected' : '' ?>>Προς επιβεβαίωση</option>
                 <option value="active" <?= $filters['status'] === 'active' ? 'selected' : '' ?>>Ενεργά</option>
                 <option value="expired" <?= $filters['status'] === 'expired' ? 'selected' : '' ?>>Έληξε η ισχύς</option>
                 <option value="cancelled" <?= $filters['status'] === 'cancelled' ? 'selected' : '' ?>>Ακυρωμένα</option>

@@ -27,6 +27,7 @@
             <label class="form-label" for="role">Ρόλος</label>
             <select class="form-select" id="role" name="role">
                 <option value="user" <?= $old['role'] === 'user' ? 'selected' : '' ?>>Χρήστης</option>
+                <option value="secretary" <?= $old['role'] === 'secretary' ? 'selected' : '' ?>>Γραμματεία</option>
                 <option value="manager" <?= $old['role'] === 'manager' ? 'selected' : '' ?>>Διαχειριστής</option>
             </select>
         </div>
@@ -35,6 +36,13 @@
                 <input type="checkbox" name="active" value="1" <?= (int) $old['active'] === 1 ? 'checked' : '' ?>>
                 <span>Ενεργός λογαριασμός</span>
             </label>
+        </div>
+        <div class="col-12" data-user-only>
+            <label class="check-line">
+                <input type="checkbox" name="certify_without_approval" value="1" <?= (int) ($old['certify_without_approval'] ?? 0) === 1 ? 'checked' : '' ?>>
+                <span>Επικύρωση εγγράφων χωρίς επιβεβαίωση από τη Γραμματεία</span>
+            </label>
+            <p class="field-hint">Ισχύει μόνο για τον ρόλο Χρήστης και είναι εξ ορισμού ανενεργή. Ο διαχειριστής και η Γραμματεία επικυρώνουν πάντα αμέσως.</p>
         </div>
     </div>
     <button class="btn btn-seal" type="submit">Αποθήκευση</button>

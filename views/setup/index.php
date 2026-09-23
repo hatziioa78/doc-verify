@@ -64,8 +64,13 @@
                     <input class="form-control" id="header_name" name="header_name" required value="<?= e($old['header_name']) ?>">
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label" for="site_url">URL ιστοτόπου</label>
+                    <label class="form-label" for="site_url">URL για το QR</label>
                     <input class="form-control" id="site_url" name="site_url" type="url" required value="<?= e($old['site_url']) ?>">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="server_url">URL διακομιστή</label>
+                    <input class="form-control" id="server_url" name="server_url" type="url" value="<?= e((string) ($old['server_url'] ?? '')) ?>">
+                    <p class="field-hint">Για τους συνδέσμους email. Αν μείνει κενό, χρησιμοποιείται το URL του QR. Μπορεί να διαφέρει πίσω από web proxy.</p>
                 </div>
                 <div class="col-12">
                     <label class="check-line">

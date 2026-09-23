@@ -214,6 +214,17 @@ button, input, select, textarea { font: inherit; }
     background: rgba(230, 201, 138, .14);
     color: white;
 }
+.nav-count {
+    margin-left: auto;
+    min-width: 1.35rem;
+    padding: 0 .35rem;
+    border-radius: 999px;
+    background: #9c3b45;
+    color: #fff;
+    font-size: .75rem;
+    font-weight: 700;
+    text-align: center;
+}
 
 .nav-backdrop { display: none; }
 
@@ -380,6 +391,7 @@ button, input, select, textarea { font: inherit; }
     font-weight: 700;
 }
 .is-active-doc { background: #e5f5ec; color: var(--pine); }
+.is-pending, .act-approval_request, .act-edit { background: #e7eef8; color: var(--navy); }
 .is-expired { background: #f8ecd8; color: var(--amber); }
 .is-cancelled, .act-cancel, .act-delete, .act-login_failed, .act-login_blocked, .act-qr_denied { background: #f8e4e7; color: var(--wax); }
 .act-login, .act-certify, .act-upload { background: #e7f3ec; color: var(--pine); }

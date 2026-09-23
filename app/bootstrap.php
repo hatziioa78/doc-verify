@@ -18,6 +18,7 @@ require BASE_PATH . '/vendor/autoload.php';
 require BASE_PATH . '/app/helpers.php';
 require BASE_PATH . '/app/Config.php';
 require BASE_PATH . '/app/Database.php';
+require BASE_PATH . '/app/Migrate.php';
 require BASE_PATH . '/app/Csrf.php';
 require BASE_PATH . '/app/Logger.php';
 require BASE_PATH . '/app/Settings.php';
@@ -26,9 +27,12 @@ require BASE_PATH . '/app/Auth.php';
 require BASE_PATH . '/app/Storage.php';
 require BASE_PATH . '/app/PdfStamper.php';
 require BASE_PATH . '/app/Documents.php';
+require BASE_PATH . '/app/Mailer.php';
+require BASE_PATH . '/app/Approvals.php';
 require BASE_PATH . '/app/SqlAdmin.php';
 
 Config::load();
+Migrate::run();
 
 $https = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
 session_name('SFRAGIS');
@@ -51,4 +55,5 @@ require BASE_PATH . '/app/controllers/VerifyController.php';
 require BASE_PATH . '/app/controllers/UserController.php';
 require BASE_PATH . '/app/controllers/HistoryController.php';
 require BASE_PATH . '/app/controllers/SettingsController.php';
+require BASE_PATH . '/app/controllers/ApprovalController.php';
 require BASE_PATH . '/app/routes.php';

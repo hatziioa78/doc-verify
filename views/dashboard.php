@@ -19,6 +19,10 @@
         <p>Ακυρωμένα</p>
         <strong><?= (int) ($stats['cancelled_count'] ?? 0) ?></strong>
     </article>
+    <article class="stat-card">
+        <p>Προς επιβεβαίωση</p>
+        <strong><?= (int) ($stats['pending_count'] ?? 0) ?></strong>
+    </article>
     <?php if (($user['role'] ?? '') === 'manager'): ?>
         <article class="stat-card">
             <p>Χρήστες</p>

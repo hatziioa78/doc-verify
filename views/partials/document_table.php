@@ -37,7 +37,9 @@
                                 <?php endif; ?>
                             </td>
                             <td class="row-actions">
-                                <a href="<?= e(url('/documents/' . $doc['id'] . '/download')) ?>" aria-label="Λήψη"><?= icon('download') ?></a>
+                                <?php if (($doc['status'] ?? '') !== 'pending'): ?>
+                                    <a href="<?= e(url('/documents/' . $doc['id'] . '/download')) ?>" aria-label="Λήψη"><?= icon('download') ?></a>
+                                <?php endif; ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>

@@ -39,6 +39,8 @@ final class Documents
             $params[] = today();
         } elseif ($status === 'cancelled') {
             $where[] = "d.status = 'cancelled'";
+        } elseif ($status === 'pending') {
+            $where[] = "d.status = 'pending'";
         }
         $ownerId = (int) ($filters['owner_id'] ?? 0);
         if ($ownerId > 0) {
@@ -89,7 +91,9 @@ final class Documents
         if (!preg_match('/^[a-f0-9]{64}$/', $token)) {
             return null;
         }
-        $stmt = Database::pdo()->prepare(self::selectSql() . ' WHERE d.token = ? AND d.deleted_at IS NULL LIMIT 1');
+        $stmt = Database::pdo()->prepare(
+            self::selectSql() . " WHERE d.token = ? AND d.deleted_at IS NULL AND d.status <> 'pending' AND d.certified_path IS NOT NULL AND d.certified_path <> '' LIMIT 1"
+        );
         $stmt->execute([$token]);
         $row = $stmt->fetch();
         return $row ?: null;
@@ -97,10 +101,25 @@ final class Documents
 
     public static function canModify(array $doc, array $actor): bool
     {
-        return ($actor['role'] ?? '') === 'manager' || (int) $doc['owner_id'] === (int) $actor['id'];
+        $role = (string) ($actor['role'] ?? '');
+        return $role === 'manager' || $role === 'secretary' || (int) $doc['owner_id'] === (int) $actor['id'];
     }
 
-    public static function create(array $owner, array $input, array $file): int
+    public static function certifiesImmediately(array $user): bool
+    {
+        $role = (string) ($user['role'] ?? '');
+        if ($role === 'manager' || $role === 'secretary') {
+            return true;
+        }
+        return (int) ($user['certify_without_approval'] ?? 0) === 1;
+    }
+
+    public static function canApprove(array $actor): bool
+    {
+        return can_approve($actor);
+    }
+
+    public static function create(array $owner, array $input, array $file): array
     {
         self::assertPdfUpload($file);
         $sha = hash_file('sha256', (string) $file['tmp_name']);
@@ -108,8 +127,10 @@ final class Documents
             throw new RuntimeException('Το αρχείο δεν μπόρεσε να διαβαστεί.');
         }
 
+        $immediate = self::certifiesImmediately($owner);
         [$originalRel, $originalAbs] = Storage::allocate('originals');
-        [$certifiedRel, $certifiedAbs] = Storage::allocate('certified');
+        $certifiedRel = null;
+        $certifiedAbs = null;
         if (!move_uploaded_file((string) $file['tmp_name'], $originalAbs)) {
             throw new RuntimeException('Η αποθήκευση του PDF απέτυχε.');
         }
@@ -117,7 +138,7 @@ final class Documents
 
         $registeredAt = now();
         $token = bin2hex(random_bytes(32));
-        $doc = [
+        $payload = [
             'subject' => $input['subject'],
             'protocol_number' => $input['protocol_number'],
             'issuing_authority' => $input['issuing_authority'],
@@ -125,17 +146,19 @@ final class Documents
             'registered_at' => $registeredAt,
             'valid_until' => $input['valid_until'],
             'sha256' => $sha,
+            'token' => $token,
             'owner_name' => full_name($owner),
         ];
-        $verifyUrl = Settings::siteUrl() . '/v/' . $token;
-
-        try {
-            PdfStamper::appendVerificationPage($originalAbs, $certifiedAbs, $doc, $verifyUrl);
-            chmod($certifiedAbs, 0640);
-        } catch (Throwable $e) {
-            Storage::remove($originalRel);
-            Storage::remove($certifiedRel);
-            throw $e;
+        if ($immediate) {
+            [$certifiedRel, $certifiedAbs] = Storage::allocate('certified');
+            try {
+                PdfStamper::appendVerificationPage($originalAbs, $certifiedAbs, self::stampPayload($payload), Settings::siteUrl() . '/v/' . $token);
+                chmod($certifiedAbs, 0640);
+            } catch (Throwable $e) {
+                Storage::remove($originalRel);
+                Storage::remove((string) $certifiedRel);
+                throw $e;
+            }
         }
 
         $pdo = Database::pdo();
@@ -143,7 +166,7 @@ final class Documents
             'INSERT INTO documents
             (owner_id, subject, protocol_number, issuing_authority, info, registered_at, valid_until, token, status,
              original_name, original_path, certified_path, sha256, created_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, \'active\', ?, ?, ?, ?, ?)'
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
         try {
             $stmt->execute([
@@ -155,6 +178,7 @@ final class Documents
                 $registeredAt,
                 $input['valid_until'],
                 $token,
+                $immediate ? 'active' : 'pending',
                 self::safeOriginalName((string) ($file['name'] ?? 'document.pdf')),
                 $originalRel,
                 $certifiedRel,
@@ -163,15 +187,118 @@ final class Documents
             ]);
         } catch (Throwable $e) {
             Storage::remove($originalRel);
-            Storage::remove($certifiedRel);
+            if ($certifiedRel !== null) {
+                Storage::remove($certifiedRel);
+            }
             throw $e;
         }
 
         $id = (int) $pdo->lastInsertId();
         $summary = self::summary($input['subject'], $input['protocol_number']);
         Logger::record((int) $owner['id'], 'upload', 'Ανέβασμα αρχείου ' . $summary, $id);
-        Logger::record((int) $owner['id'], 'certify', 'Επικύρωση εγγράφου ' . $summary, $id);
-        return $id;
+        $notice = '';
+        if ($immediate) {
+            Logger::record((int) $owner['id'], 'certify', 'Επικύρωση εγγράφου ' . $summary, $id);
+        } else {
+            Logger::record((int) $owner['id'], 'approval_request', 'Αίτημα επιβεβαίωσης για ' . $summary, $id);
+            $notice = Approvals::notify($id);
+        }
+        return ['id' => $id, 'pending' => !$immediate, 'notice' => $notice];
+    }
+
+    public static function approve(array $doc, array $actor): void
+    {
+        if (!self::canApprove($actor)) {
+            forbidden();
+        }
+        if (($doc['status'] ?? '') !== 'pending') {
+            throw new RuntimeException('Το έγγραφο δεν εκκρεμεί για επιβεβαίωση.');
+        }
+        [$certifiedRel, $certifiedAbs] = Storage::allocate('certified');
+        try {
+            PdfStamper::appendVerificationPage(
+                Storage::pdfPath((string) $doc['original_path']),
+                $certifiedAbs,
+                self::stampPayload($doc),
+                Settings::siteUrl() . '/v/' . $doc['token']
+            );
+            chmod($certifiedAbs, 0640);
+        } catch (Throwable $e) {
+            Storage::remove($certifiedRel);
+            if ($e instanceof RuntimeException) {
+                throw $e;
+            }
+            throw new RuntimeException('Η σφράγιση του PDF απέτυχε.');
+        }
+        $stmt = Database::pdo()->prepare(
+            'UPDATE documents
+             SET status = \'active\', certified_path = ?, confirmed_at = ?, confirmed_by = ?
+             WHERE id = ? AND deleted_at IS NULL AND status = \'pending\''
+        );
+        $stmt->execute([$certifiedRel, now(), (int) $actor['id'], (int) $doc['id']]);
+        if ($stmt->rowCount() !== 1) {
+            Storage::remove($certifiedRel);
+            throw new RuntimeException('Το έγγραφο δεν εκκρεμεί πλέον για επιβεβαίωση.');
+        }
+        Logger::record(
+            (int) $actor['id'],
+            'certify',
+            'Επιβεβαίωση και επικύρωση εγγράφου ' . self::summary((string) $doc['subject'], (string) $doc['protocol_number']),
+            (int) $doc['id']
+        );
+    }
+
+    public static function updateMeta(array $doc, array $actor, array $input): void
+    {
+        if (!self::canModify($doc, $actor)) {
+            forbidden();
+        }
+        $merged = array_merge($doc, [
+            'subject' => $input['subject'],
+            'protocol_number' => $input['protocol_number'],
+            'issuing_authority' => $input['issuing_authority'],
+            'info' => $input['info'],
+            'valid_until' => $input['valid_until'],
+        ]);
+        $temp = null;
+        $needsStamp = ($doc['status'] ?? '') !== 'pending' && (string) ($doc['certified_path'] ?? '') !== '';
+        if ($needsStamp) {
+            $temp = self::renderStamp($merged);
+        }
+        $stmt = Database::pdo()->prepare(
+            'UPDATE documents
+             SET subject = ?, protocol_number = ?, issuing_authority = ?, info = ?, valid_until = ?
+             WHERE id = ? AND deleted_at IS NULL'
+        );
+        try {
+            $stmt->execute([
+                $input['subject'],
+                $input['protocol_number'],
+                $input['issuing_authority'],
+                $input['info'],
+                $input['valid_until'],
+                (int) $doc['id'],
+            ]);
+        } catch (Throwable $e) {
+            if ($temp !== null) {
+                @unlink($temp);
+            }
+            throw $e;
+        }
+        if ($temp !== null) {
+            $target = Storage::pdfPath((string) $doc['certified_path']);
+            if (!@rename($temp, $target)) {
+                @unlink($temp);
+                throw new RuntimeException('Τα στοιχεία αποθηκεύτηκαν, αλλά η σελίδα επαλήθευσης του PDF δεν ανανεώθηκε.');
+            }
+            chmod($target, 0640);
+        }
+        Logger::record(
+            (int) $actor['id'],
+            'edit',
+            'Επεξεργασία εγγράφου ' . self::summary($input['subject'], $input['protocol_number']),
+            (int) $doc['id']
+        );
     }
 
     public static function cancel(array $doc, array $actor, string $reason): void
@@ -189,7 +316,7 @@ final class Documents
         $stmt = Database::pdo()->prepare(
             'UPDATE documents
              SET status = \'cancelled\', cancellation_reason = ?, cancelled_at = ?, cancelled_by = ?
-             WHERE id = ? AND deleted_at IS NULL AND status = \'active\''
+             WHERE id = ? AND deleted_at IS NULL AND status IN (\'active\', \'pending\')'
         );
         $stmt->execute([
             $reason !== '' ? $reason : null,
@@ -232,10 +359,53 @@ final class Documents
     {
         return 'SELECT d.*,
                 u.first_name, u.last_name, u.email AS owner_email, u.department AS owner_department,
-                c.first_name AS canceller_first_name, c.last_name AS canceller_last_name
+                c.first_name AS canceller_first_name, c.last_name AS canceller_last_name,
+                f.first_name AS confirmer_first_name, f.last_name AS confirmer_last_name
             FROM documents d
             JOIN users u ON u.id = d.owner_id
-            LEFT JOIN users c ON c.id = d.cancelled_by';
+            LEFT JOIN users c ON c.id = d.cancelled_by
+            LEFT JOIN users f ON f.id = d.confirmed_by';
+    }
+
+    private static function stampPayload(array $doc): array
+    {
+        $owner = trim((string) ($doc['owner_name'] ?? ''));
+        if ($owner === '') {
+            $owner = trim((string) ($doc['last_name'] ?? '') . ' ' . (string) ($doc['first_name'] ?? ''));
+        }
+        return [
+            'subject' => (string) $doc['subject'],
+            'protocol_number' => (string) $doc['protocol_number'],
+            'issuing_authority' => (string) $doc['issuing_authority'],
+            'info' => (string) $doc['info'],
+            'registered_at' => (string) $doc['registered_at'],
+            'valid_until' => (string) $doc['valid_until'],
+            'sha256' => (string) $doc['sha256'],
+            'owner_name' => $owner,
+        ];
+    }
+
+    private static function renderStamp(array $doc): string
+    {
+        $dir = BASE_PATH . '/storage/tmp';
+        if (!is_dir($dir) && !mkdir($dir, 0750, true) && !is_dir($dir)) {
+            throw new RuntimeException('Αποτυχία δημιουργίας προσωρινού φακέλου.');
+        }
+        $temp = $dir . '/stamp-' . bin2hex(random_bytes(8)) . '.pdf';
+        try {
+            PdfStamper::appendVerificationPage(
+                Storage::pdfPath((string) $doc['original_path']),
+                $temp,
+                self::stampPayload($doc),
+                Settings::siteUrl() . '/v/' . $doc['token']
+            );
+        } catch (Throwable $e) {
+            if (is_file($temp)) {
+                @unlink($temp);
+            }
+            throw $e;
+        }
+        return $temp;
     }
 
     private static function assertPdfUpload(array $file): void

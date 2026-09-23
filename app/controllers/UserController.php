@@ -8,8 +8,8 @@ final class UserController
     {
         Auth::requireManager();
         $users = Database::pdo()->query(
-            'SELECT u.*, (SELECT COUNT(*) FROM documents d WHERE d.owner_id = u.id AND d.deleted_at IS NULL) AS documents_count
-             FROM users u ORDER BY u.role DESC, u.last_name, u.first_name'
+            "SELECT u.*, (SELECT COUNT(*) FROM documents d WHERE d.owner_id = u.id AND d.deleted_at IS NULL) AS documents_count
+             FROM users u ORDER BY FIELD(u.role, 'manager', 'secretary', 'user'), u.last_name, u.first_name"
         )->fetchAll();
         render('users/index', [
             'title' => 'Χρήστες',
@@ -43,8 +43,8 @@ final class UserController
         }
         $stamp = now();
         $stmt = Database::pdo()->prepare(
-            'INSERT INTO users (last_name, first_name, department, email, password_hash, role, active, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+            'INSERT INTO users (last_name, first_name, department, email, password_hash, role, active, certify_without_approval, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
         try {
             $stmt->execute([
@@ -55,6 +55,7 @@ final class UserController
                 password_hash(post_raw('password'), PASSWORD_DEFAULT),
                 $old['role'],
                 $old['active'],
+                $old['certify_without_approval'],
                 $stamp,
                 $stamp,
             ]);
@@ -67,7 +68,7 @@ final class UserController
                 'old' => $old,
             ]);
         }
-        Logger::record((int) $actor['id'], 'user_create', 'Δημιουργία χρήστη ' . $old['email'] . ' (' . ($old['role'] === 'manager' ? 'διαχειριστής' : 'χρήστης') . ')');
+        Logger::record((int) $actor['id'], 'user_create', 'Δημιουργία χρήστη ' . $old['email'] . ' (' . role_label($old['role']) . ')');
         flash('success', 'Ο χρήστης δημιουργήθηκε.');
         redirect('/users');
     }
@@ -102,14 +103,14 @@ final class UserController
         }
         if ($password !== '') {
             $stmt = Database::pdo()->prepare(
-                'UPDATE users SET last_name = ?, first_name = ?, department = ?, email = ?, password_hash = ?, role = ?, active = ?, updated_at = ? WHERE id = ?'
+                'UPDATE users SET last_name = ?, first_name = ?, department = ?, email = ?, password_hash = ?, role = ?, active = ?, certify_without_approval = ?, updated_at = ? WHERE id = ?'
             );
-            $params = [$old['last_name'], $old['first_name'], $old['department'], $old['email'], password_hash($password, PASSWORD_DEFAULT), $old['role'], $old['active'], now(), $id];
+            $params = [$old['last_name'], $old['first_name'], $old['department'], $old['email'], password_hash($password, PASSWORD_DEFAULT), $old['role'], $old['active'], $old['certify_without_approval'], now(), $id];
         } else {
             $stmt = Database::pdo()->prepare(
-                'UPDATE users SET last_name = ?, first_name = ?, department = ?, email = ?, role = ?, active = ?, updated_at = ? WHERE id = ?'
+                'UPDATE users SET last_name = ?, first_name = ?, department = ?, email = ?, role = ?, active = ?, certify_without_approval = ?, updated_at = ? WHERE id = ?'
             );
-            $params = [$old['last_name'], $old['first_name'], $old['department'], $old['email'], $old['role'], $old['active'], now(), $id];
+            $params = [$old['last_name'], $old['first_name'], $old['department'], $old['email'], $old['role'], $old['active'], $old['certify_without_approval'], now(), $id];
         }
         try {
             $stmt->execute($params);
@@ -136,8 +137,8 @@ final class UserController
             flash('danger', 'Δεν μπορείτε να διαγράψετε τον δικό σας λογαριασμό.');
             redirect('/users');
         }
-        $docs = Database::pdo()->prepare('SELECT COUNT(*) FROM documents WHERE owner_id = ? OR cancelled_by = ? OR deleted_by = ?');
-        $docs->execute([$id, $id, $id]);
+        $docs = Database::pdo()->prepare('SELECT COUNT(*) FROM documents WHERE owner_id = ? OR cancelled_by = ? OR deleted_by = ? OR confirmed_by = ?');
+        $docs->execute([$id, $id, $id, $id]);
         if ((int) $docs->fetchColumn() > 0) {
             flash('danger', 'Ο χρήστης συνδέεται με έγγραφα του μητρώου και δεν διαγράφεται. Μπορείτε να τον απενεργοποιήσετε.');
             redirect('/users/' . $id . '/edit');
@@ -149,6 +150,7 @@ final class UserController
                 redirect('/users');
             }
         }
+        Database::pdo()->prepare('DELETE FROM approval_links WHERE secretary_id = ?')->execute([$id]);
         $stmt = Database::pdo()->prepare('DELETE FROM users WHERE id = ?');
         $stmt->execute([$id]);
         Logger::record((int) $actor['id'], 'user_delete', 'Διαγραφή χρήστη ' . $editing['email']);
@@ -176,6 +178,7 @@ final class UserController
             'email' => '',
             'role' => 'user',
             'active' => 1,
+            'certify_without_approval' => 0,
         ];
     }
 
@@ -188,15 +191,17 @@ final class UserController
             'email' => (string) $user['email'],
             'role' => (string) $user['role'],
             'active' => (int) $user['active'],
+            'certify_without_approval' => (int) ($user['certify_without_approval'] ?? 0),
         ];
     }
 
     private static function fromPost(bool $creating): array
     {
         $role = post_string('role', 20);
-        if (!in_array($role, ['manager', 'user'], true)) {
+        if (!in_array($role, ['manager', 'secretary', 'user'], true)) {
             $role = 'user';
         }
+        $direct = $role === 'user' && post_raw('certify_without_approval') === '1' ? 1 : 0;
         return [
             'last_name' => post_string('last_name', 100),
             'first_name' => post_string('first_name', 100),
@@ -204,6 +209,7 @@ final class UserController
             'email' => normalize_email(post_string('email', 190)),
             'role' => $role,
             'active' => post_raw('active') === '1' ? 1 : 0,
+            'certify_without_approval' => $direct,
         ];
     }
 

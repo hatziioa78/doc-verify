@@ -14,6 +14,7 @@ final class SetupController
             'old' => [
                 'header_name' => 'ΣΦΡΑΓΙΣ',
                 'site_url' => current_origin(),
+                'server_url' => current_origin(),
                 'last_name' => '',
                 'first_name' => '',
                 'department' => '',
@@ -69,6 +70,7 @@ final class SetupController
             $settings = $pdo->prepare('INSERT INTO settings (skey, svalue) VALUES (?, ?)');
             foreach ([
                 'site_url' => rtrim($old['site_url'], '/'),
+                'server_url' => rtrim($old['server_url'] !== '' ? $old['server_url'] : $old['site_url'], '/'),
                 'header_name' => $old['header_name'],
                 'footer_contact' => '',
                 'footer_credits' => '',
@@ -118,6 +120,7 @@ final class SetupController
         return [
             'header_name' => post_string('header_name', 120),
             'site_url' => post_string('site_url', 255),
+            'server_url' => post_string('server_url', 255),
             'last_name' => post_string('last_name', 100),
             'first_name' => post_string('first_name', 100),
             'department' => post_string('department', 150),
@@ -152,7 +155,10 @@ final class SetupController
             $errors[] = 'Συμπληρώστε το όνομα που θα φαίνεται στην κεφαλίδα.';
         }
         if (!self::validSiteUrl($old['site_url'])) {
-            $errors[] = 'Το URL του ιστοτόπου πρέπει να αρχίζει από http:// ή https://.';
+            $errors[] = 'Το URL του QR πρέπει να αρχίζει από http:// ή https://.';
+        }
+        if ($old['server_url'] !== '' && !self::validSiteUrl($old['server_url'])) {
+            $errors[] = 'Το URL του διακομιστή πρέπει να αρχίζει από http:// ή https://.';
         }
         return $errors;
     }

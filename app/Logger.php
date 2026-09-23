@@ -11,6 +11,8 @@ final class Logger
         'login_blocked' => 'Απόρριψη εκτός δικτύου',
         'upload' => 'Ανέβασμα αρχείου',
         'certify' => 'Επικύρωση',
+        'approval_request' => 'Αίτημα επιβεβαίωσης',
+        'edit' => 'Επεξεργασία εγγράφου',
         'cancel' => 'Ακύρωση',
         'delete' => 'Διαγραφή',
         'download' => 'Λήψη αρχείου',
@@ -26,11 +28,12 @@ final class Logger
         'sql_restore' => 'Επαναφορά SQL',
         'network' => 'Ενημέρωση δικτύων',
         'password' => 'Αλλαγή κωδικού',
+        'mail_test' => 'Δοκιμή email',
     ];
 
-    public const FILE_ACTIONS = ['upload', 'certify', 'cancel', 'delete', 'download', 'qr_view'];
+    public const FILE_ACTIONS = ['upload', 'certify', 'approval_request', 'edit', 'cancel', 'delete', 'download', 'qr_view'];
 
-    public const OWN_FILE_ACTIONS = ['upload', 'certify', 'cancel', 'delete', 'download'];
+    public const OWN_FILE_ACTIONS = ['upload', 'certify', 'approval_request', 'edit', 'cancel', 'delete', 'download'];
 
     public static function label(string $action): string
     {

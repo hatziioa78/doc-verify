@@ -206,8 +206,26 @@ function like_term(string $value): string
     return '%' . $value . '%';
 }
 
+function role_label(string $role): string
+{
+    return match ($role) {
+        'manager' => 'Διαχειριστής',
+        'secretary' => 'Γραμματεία',
+        default => 'Χρήστης',
+    };
+}
+
+function can_approve(?array $user): bool
+{
+    $role = (string) ($user['role'] ?? '');
+    return $role === 'manager' || $role === 'secretary';
+}
+
 function document_state(array $doc): string
 {
+    if (($doc['status'] ?? '') === 'pending') {
+        return 'pending';
+    }
     if (($doc['status'] ?? '') === 'cancelled') {
         return 'cancelled';
     }
@@ -221,6 +239,7 @@ function document_state(array $doc): string
 function state_label(string $state): string
 {
     return match ($state) {
+        'pending' => 'Προς επιβεβαίωση',
         'cancelled' => 'Ακυρωμένο',
         'expired' => 'Έληξε η ισχύς',
         'active' => 'Ενεργό',
@@ -231,6 +250,7 @@ function state_label(string $state): string
 function state_class(string $state): string
 {
     return match ($state) {
+        'pending' => 'is-pending',
         'cancelled' => 'is-cancelled',
         'expired' => 'is-expired',
         'active' => 'is-active-doc',
@@ -257,6 +277,7 @@ function icon(string $name): string
         'search' => '<circle cx="11" cy="11" r="6"/><path d="M20 20l-3.5-3.5"/>',
         'download' => '<path d="M12 4v10"/><path d="M8 10l4 4 4-4"/><path d="M5 19h14"/>',
         'shield' => '<path d="M12 3l7 3v6c0 4.2-2.8 7.2-7 8.5C7.8 19.2 5 16.2 5 12V6l7-3z"/><path d="M9 12l2 2 4-4"/>',
+        'inbox' => '<path d="M4 5h16v14H4z"/><path d="M4 13h4.2l1.6 2.4h4.4L15.8 13H20"/>',
         'ban' => '<circle cx="12" cy="12" r="8"/><path d="M7 7l10 10"/>',
         'user' => '<circle cx="12" cy="8" r="3"/><path d="M6 19v-1a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v1"/>',
         'link' => '<path d="M10 13a5 5 0 0 0 7.1.1l1.4-1.5a5 5 0 0 0-7.1-7.1L10 6"/><path d="M14 11a5 5 0 0 0-7.1-.1L5.5 12.4a5 5 0 0 0 7.1 7.1L14 18"/>',
@@ -307,8 +328,9 @@ function nav_on(string $section): string
     $path = request_path();
     $on = match ($section) {
         'dash' => $path === '/',
-        'docs' => $path === '/documents' || (bool) preg_match('#^/documents/\d+$#', $path),
+        'docs' => $path === '/documents' || (bool) preg_match('#^/documents/\d+#', $path),
         'new' => $path === '/documents/new',
+        'approvals' => $path === '/approvals',
         'users' => str_starts_with($path, '/users'),
         'history' => $path === '/history',
         'logs' => $path === '/logs',

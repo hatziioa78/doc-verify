@@ -1,4 +1,4 @@
-<?php page_head('Σύστημα', 'Παράμετροι', 'Το όνομα της κεφαλίδας, το URL των QR, το υποσέλιδο, η MySQL και τα δίκτυα από τα οποία συνδέονται οι χρήστες.'); ?>
+<?php page_head('Σύστημα', 'Παράμετροι', 'Το όνομα της κεφαλίδας, το URL του QR, το URL του διακομιστή, το email, το υποσέλιδο, η MySQL και τα δίκτυα σύνδεσης.'); ?>
 <section class="summary-strip">
     <span>Συνδεδεμένη βάση <strong><?= e($summary['name']) ?></strong> στο <?= e($summary['host']) ?></span>
     <span><?= (int) $summary['documents'] ?> έγγραφα</span>
@@ -14,9 +14,14 @@
             <input class="form-control" id="header_name" name="header_name" required maxlength="120" value="<?= e(Settings::headerName()) ?>">
         </div>
         <div class="col-md-6">
-            <label class="form-label" for="site_url">URL ιστοτόπου</label>
+            <label class="form-label" for="site_url">URL για το QR</label>
             <input class="form-control" id="site_url" name="site_url" type="url" required value="<?= e(Settings::siteUrl()) ?>">
-            <p class="field-hint">Τα νέα QR δείχνουν σε <?= e(Settings::siteUrl()) ?>/v/… Τα ήδη σφραγισμένα PDF κρατούν το URL της στιγμής που δημιουργήθηκαν.</p>
+            <p class="field-hint">Μπαίνει στον κωδικό QR: <?= e(Settings::siteUrl()) ?>/v/… Τα ήδη σφραγισμένα PDF κρατούν το URL της στιγμής που δημιουργήθηκαν.</p>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="server_url">URL διακομιστή</label>
+            <input class="form-control" id="server_url" name="server_url" type="url" required value="<?= e(Settings::serverUrl()) ?>">
+            <p class="field-hint">Χρησιμοποιείται στους συνδέσμους των email. Μπορεί να διαφέρει από το URL του QR όταν η εφαρμογή είναι πίσω από web proxy.</p>
         </div>
         <div class="col-md-6">
             <label class="form-label" for="footer_contact">Επικοινωνία στο υποσέλιδο</label>
@@ -35,10 +40,71 @@
     <button class="btn btn-seal" type="submit">Αποθήκευση εμφάνισης</button>
 </form>
 
+<form class="paper-card stack-form" method="post" action="<?= e(url('/settings/mail')) ?>">
+    <?= csrf_field() ?>
+    <h2>Email επιβεβαίωσης</h2>
+    <p class="field-hint">Κάθε αίτημα επιβεβαίωσης μπορεί να σταλεί στη Γραμματεία και σε μία ακόμη διεύθυνση. Ο σύνδεσμος «Πατήστε εδώ» συνδέει τον παραλήπτη ως Γραμματεία, στο συγκεκριμένο έγγραφο. Ο κωδικός SMTP αποθηκεύεται στη βάση και περιλαμβάνεται στα αντίγραφα SQL.</p>
+    <div class="row g-3">
+        <div class="col-md-5">
+            <label class="form-label" for="smtp_host">Διακομιστής SMTP</label>
+            <input class="form-control" id="smtp_host" name="smtp_host" value="<?= e(Settings::get('smtp_host')) ?>" maxlength="253">
+        </div>
+        <div class="col-md-2">
+            <label class="form-label" for="smtp_port">Θύρα</label>
+            <input class="form-control" id="smtp_port" name="smtp_port" inputmode="numeric" value="<?= e(Settings::get('smtp_port', '587')) ?>">
+        </div>
+        <div class="col-md-5">
+            <label class="form-label" for="smtp_security">Ασφάλεια</label>
+            <select class="form-select" id="smtp_security" name="smtp_security">
+                <?php $security = Settings::get('smtp_security', 'tls'); ?>
+                <option value="tls" <?= $security === 'tls' ? 'selected' : '' ?>>TLS (συνήθως 587)</option>
+                <option value="ssl" <?= $security === 'ssl' ? 'selected' : '' ?>>SSL (συνήθως 465)</option>
+                <option value="none" <?= $security === 'none' ? 'selected' : '' ?>>Χωρίς κρυπτογράφηση</option>
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="smtp_username">Όνομα χρήστη</label>
+            <input class="form-control" id="smtp_username" name="smtp_username" value="<?= e(Settings::get('smtp_username')) ?>" maxlength="190" autocomplete="off">
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="smtp_password">Κωδικός</label>
+            <input class="form-control" id="smtp_password" name="smtp_password" type="password" autocomplete="new-password" placeholder="<?= Settings::secret('smtp_password') !== '' ? 'Αποθηκευμένος · κενό = χωρίς αλλαγή' : '' ?>">
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="smtp_from_name">Όνομα αποστολέα</label>
+            <input class="form-control" id="smtp_from_name" name="smtp_from_name" maxlength="120" value="<?= e(Settings::get('smtp_from_name')) ?>">
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="smtp_from_email">Email αποστολέα</label>
+            <input class="form-control" id="smtp_from_email" name="smtp_from_email" type="email" maxlength="190" value="<?= e(Settings::get('smtp_from_email')) ?>">
+        </div>
+        <div class="col-12">
+            <label class="check-line">
+                <input type="checkbox" name="notify_secretary" value="1" <?= Settings::flag('notify_secretary') ? 'checked' : '' ?>>
+                <span>Να στέλνεται email σε κάθε ενεργή Γραμματεία</span>
+            </label>
+        </div>
+        <div class="col-md-6">
+            <label class="check-line">
+                <input type="checkbox" name="notify_extra" value="1" <?= Settings::flag('notify_extra') ? 'checked' : '' ?>>
+                <span>Να προωθείται και σε άλλο email</span>
+            </label>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="notify_extra_email">Άλλο email</label>
+            <input class="form-control" id="notify_extra_email" name="notify_extra_email" type="email" maxlength="190" value="<?= e(Settings::get('notify_extra_email')) ?>">
+        </div>
+    </div>
+    <div class="action-row">
+        <button class="btn btn-seal" type="submit">Αποθήκευση email</button>
+        <button class="btn btn-ink" type="submit" formaction="<?= e(url('/settings/mail/test')) ?>">Δοκιμαστική αποστολή</button>
+    </div>
+</form>
+
 <form class="paper-card stack-form" method="post" action="<?= e(url('/settings/networks')) ?>">
     <?= csrf_field() ?>
     <h2>Εσωτερικά δίκτυα χρηστών</h2>
-    <p class="field-hint">Οι χρήστες συνδέονται μόνο από αυτές τις διευθύνσεις. Ο διαχειριστής συνδέεται από οπουδήποτε, ώστε να μπορεί να διορθώσει τη λίστα. Αν η λίστα είναι κενή, δεν υπάρχει περιορισμός.</p>
+    <p class="field-hint">Οι χρήστες και η γραμματεία συνδέονται με κωδικό μόνο από αυτές τις διευθύνσεις. Ο διαχειριστής συνδέεται από οπουδήποτε. Ο σύνδεσμος email επιβεβαίωσης συνδέει τη Γραμματεία και εκτός λίστας. Αν η λίστα είναι κενή, δεν υπάρχει περιορισμός.</p>
     <div data-network-list>
         <?php
         $rows = $networks;

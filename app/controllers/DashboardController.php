@@ -14,6 +14,7 @@ final class DashboardController
                 SUM(deleted_at IS NULL AND status = 'active' AND valid_until >= CURDATE()) AS active_count,
                 SUM(deleted_at IS NULL AND status = 'active' AND valid_until < CURDATE()) AS expired_count,
                 SUM(deleted_at IS NULL AND status = 'cancelled') AS cancelled_count,
+                SUM(deleted_at IS NULL AND status = 'pending') AS pending_count,
                 SUM(deleted_at IS NULL AND status = 'active' AND valid_until >= CURDATE() AND valid_until <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)) AS soon_count
              FROM documents"
         )->fetch() ?: [];

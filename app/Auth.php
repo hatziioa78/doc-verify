@@ -18,7 +18,7 @@ final class Auth
             return null;
         }
         $stmt = Database::pdo()->prepare(
-            'SELECT id, last_name, first_name, department, email, password_hash, role, active, created_at
+            'SELECT id, last_name, first_name, department, email, password_hash, role, active, certify_without_approval, created_at
              FROM users WHERE id = ? LIMIT 1'
         );
         $stmt->execute([$id]);
@@ -42,6 +42,12 @@ final class Auth
     {
         $user ??= self::user();
         return $user !== null && ($user['role'] ?? '') === 'manager';
+    }
+
+    public static function canApprove(?array $user = null): bool
+    {
+        $user ??= self::user();
+        return can_approve($user);
     }
 
     public static function attempt(string $email, string $password): array
@@ -71,7 +77,7 @@ final class Auth
 
         if (($user['role'] ?? '') !== 'manager' && !NetworkGuard::allows($ip)) {
             Logger::record((int) $user['id'], 'login_blocked', 'Απόρριψη σύνδεσης από ' . $ip . ' για ' . $user['email']);
-            return ['ok' => false, 'error' => 'Η σύνδεση χρηστών επιτρέπεται μόνο από τα εγκεκριμένα εσωτερικά δίκτυα.'];
+            return ['ok' => false, 'error' => 'Η σύνδεση χρηστών και γραμματείας επιτρέπεται μόνο από τα εγκεκριμένα εσωτερικά δίκτυα.'];
         }
 
         self::clearAttempts($ip, $email);
@@ -80,6 +86,7 @@ final class Auth
         $_SESSION['_fp'] = self::fingerprint();
         $_SESSION['_last'] = time();
         $_SESSION['_regen'] = time();
+        unset($_SESSION['_magic']);
         Csrf::rotate();
         self::flush();
         Logger::record((int) $user['id'], 'login', 'Επιτυχής σύνδεση του ' . $user['email']);
@@ -132,12 +139,13 @@ final class Auth
             redirect('/login');
         }
 
-        if (($user['role'] ?? '') !== 'manager' && !NetworkGuard::allows(client_ip())) {
+        $magicSecretary = (int) ($_SESSION['_magic'] ?? 0) === 1 && ($user['role'] ?? '') === 'secretary';
+        if (($user['role'] ?? '') !== 'manager' && !$magicSecretary && !NetworkGuard::allows(client_ip())) {
             $email = (string) $user['email'];
             $id = (int) $user['id'];
             self::logout();
             Logger::record($id, 'login_blocked', 'Διακοπή συνεδρίας εκτός εγκεκριμένου δικτύου για ' . $email);
-            flash('danger', 'Η σύνδεση χρηστών επιτρέπεται μόνο από τα εγκεκριμένα εσωτερικά δίκτυα.');
+            flash('danger', 'Η σύνδεση χρηστών και γραμματείας επιτρέπεται μόνο από τα εγκεκριμένα εσωτερικά δίκτυα.');
             redirect('/login');
         }
 
@@ -151,6 +159,29 @@ final class Auth
             forbidden();
         }
         return $user;
+    }
+
+    public static function requireApprover(): array
+    {
+        $user = self::requireUser();
+        if (!self::canApprove($user)) {
+            forbidden();
+        }
+        return $user;
+    }
+
+    public static function startMagicSession(array $user, int $documentId): void
+    {
+        session_regenerate_id(true);
+        $_SESSION = [];
+        $_SESSION['uid'] = (int) $user['id'];
+        $_SESSION['_fp'] = self::fingerprint();
+        $_SESSION['_last'] = time();
+        $_SESSION['_regen'] = time();
+        $_SESSION['_magic'] = 1;
+        Csrf::rotate();
+        self::flush();
+        Logger::record((int) $user['id'], 'login', 'Σύνδεση Γραμματείας από σύνδεσμο επιβεβαίωσης', $documentId);
     }
 
     public static function fingerprint(): string

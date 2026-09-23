@@ -29,6 +29,10 @@ $org = Settings::headerName();
         <nav class="side-nav" aria-label="Κύρια πλοήγηση">
             <a class="side-link<?= nav_on('dash') ?>" href="<?= e(url('/')) ?>"><?= icon('grid') ?> Επισκόπηση</a>
             <a class="side-link<?= nav_on('docs') ?>" href="<?= e(url('/documents')) ?>"><?= icon('files') ?> Έγγραφα</a>
+            <?php if ($currentUser && can_approve($currentUser)): ?>
+                <?php $pendingNav = 0; try { $pendingNav = Approvals::pendingCount(); } catch (Throwable) { $pendingNav = 0; } ?>
+                <a class="side-link<?= nav_on('approvals') ?>" href="<?= e(url('/approvals')) ?>"><?= icon('inbox') ?> Προς επιβεβαίωση<?php if ($pendingNav > 0): ?><span class="nav-count"><?= (int) $pendingNav ?></span><?php endif; ?></a>
+            <?php endif; ?>
             <a class="side-link<?= nav_on('new') ?>" href="<?= e(url('/documents/new')) ?>"><?= icon('plus') ?> Νέα επικύρωση</a>
             <?php if ($currentUser && ($currentUser['role'] ?? '') === 'manager'): ?>
                 <a class="side-link<?= nav_on('users') ?>" href="<?= e(url('/users')) ?>"><?= icon('users') ?> Χρήστες</a>
@@ -62,7 +66,7 @@ $org = Settings::headerName();
                     <span class="user-avatar"><?= e(mb_substr((string) $currentUser['last_name'], 0, 1)) ?></span>
                     <span>
                         <strong><?= e(full_name($currentUser)) ?></strong>
-                        <small><?= ($currentUser['role'] ?? '') === 'manager' ? 'Διαχειριστής' : 'Χρήστης' ?></small>
+                        <small><?= e(role_label((string) ($currentUser['role'] ?? 'user'))) ?></small>
                     </span>
                 </div>
             <?php endif; ?>

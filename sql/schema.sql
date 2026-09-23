@@ -5,8 +5,9 @@ CREATE TABLE IF NOT EXISTS users (
     department VARCHAR(150) NOT NULL DEFAULT '',
     email VARCHAR(190) NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
-    role ENUM('manager', 'user') NOT NULL DEFAULT 'user',
+    role ENUM('manager', 'secretary', 'user') NOT NULL DEFAULT 'user',
     active TINYINT(1) NOT NULL DEFAULT 1,
+    certify_without_approval TINYINT(1) NOT NULL DEFAULT 0,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL,
     PRIMARY KEY (id),
@@ -23,13 +24,15 @@ CREATE TABLE IF NOT EXISTS documents (
     registered_at DATETIME NOT NULL,
     valid_until DATE NOT NULL,
     token CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
-    status ENUM('active', 'cancelled') NOT NULL DEFAULT 'active',
+    status ENUM('pending', 'active', 'cancelled') NOT NULL DEFAULT 'active',
     cancellation_reason VARCHAR(500) NULL,
     cancelled_at DATETIME NULL,
     cancelled_by INT UNSIGNED NULL,
+    confirmed_at DATETIME NULL,
+    confirmed_by INT UNSIGNED NULL,
     original_name VARCHAR(255) NOT NULL,
     original_path VARCHAR(255) NOT NULL,
-    certified_path VARCHAR(255) NOT NULL,
+    certified_path VARCHAR(255) NULL,
     sha256 CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
     deleted_at DATETIME NULL,
     deleted_by INT UNSIGNED NULL,
@@ -43,7 +46,23 @@ CREATE TABLE IF NOT EXISTS documents (
     KEY idx_documents_visible (deleted_at, status),
     CONSTRAINT fk_documents_owner FOREIGN KEY (owner_id) REFERENCES users (id),
     CONSTRAINT fk_documents_cancelled_by FOREIGN KEY (cancelled_by) REFERENCES users (id),
-    CONSTRAINT fk_documents_deleted_by FOREIGN KEY (deleted_by) REFERENCES users (id)
+    CONSTRAINT fk_documents_deleted_by FOREIGN KEY (deleted_by) REFERENCES users (id),
+    CONSTRAINT fk_documents_confirmed_by FOREIGN KEY (confirmed_by) REFERENCES users (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS approval_links (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    token CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    document_id INT UNSIGNED NOT NULL,
+    secretary_id INT UNSIGNED NOT NULL,
+    expires_at DATETIME NOT NULL,
+    created_at DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_approval_token (token),
+    KEY idx_approval_document (document_id),
+    KEY idx_approval_expires (expires_at),
+    CONSTRAINT fk_approval_document FOREIGN KEY (document_id) REFERENCES documents (id) ON DELETE CASCADE,
+    CONSTRAINT fk_approval_secretary FOREIGN KEY (secretary_id) REFERENCES users (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS activity_log (
