@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 final class Migrate
 {
-    private const VERSION = '2';
+    private const VERSION = '3';
 
     public static function run(): void
     {
@@ -75,6 +75,12 @@ final class Migrate
                 $insert = $pdo->prepare('INSERT INTO settings (skey, svalue) VALUES (?, ?)');
                 $insert->execute(['server_url', $site]);
             }
+        }
+
+        $exists->execute(['stamp_placement']);
+        if ($exists->fetchColumn() === false) {
+            $insert = $pdo->prepare('INSERT INTO settings (skey, svalue) VALUES (?, ?)');
+            $insert->execute(['stamp_placement', 'footer']);
         }
     }
 

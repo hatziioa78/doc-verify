@@ -1,4 +1,4 @@
-<?php page_head('Σύστημα', 'Παράμετροι', 'Το όνομα της κεφαλίδας, το URL του QR, το URL του διακομιστή, το email, το υποσέλιδο, η MySQL και τα δίκτυα σύνδεσης.'); ?>
+<?php page_head('Σύστημα', 'Παράμετροι', 'Το όνομα της κεφαλίδας, η μορφή της σφραγίδας, το URL του QR, το URL του διακομιστή, το email, το υποσέλιδο, η MySQL και τα δίκτυα σύνδεσης.'); ?>
 <section class="summary-strip">
     <span>Συνδεδεμένη βάση <strong><?= e($summary['name']) ?></strong> στο <?= e($summary['host']) ?></span>
     <span><?= (int) $summary['documents'] ?> έγγραφα</span>
@@ -35,6 +35,23 @@
             <label class="form-label" for="default_validity_months">Προεπιλεγμένη ισχύς (μήνες)</label>
             <input class="form-control" id="default_validity_months" name="default_validity_months" type="number" min="1" max="120" required value="<?= (int) Settings::validityMonths() ?>">
             <p class="field-hint">Κάθε νέα καταχώρηση προτείνει αυτή τη διάρκεια. Η ημερομηνία μένει πάντα συμπληρωμένη.</p>
+        </div>
+        <div class="col-12">
+            <p class="form-label">Ψηφιακή σφραγίδα</p>
+            <?php $placement = Settings::stampPlacement(); ?>
+            <label class="check-line">
+                <input type="radio" name="stamp_placement" value="footer" <?= $placement === 'footer' ? 'checked' : '' ?>>
+                <span>Υποσέλιδο σε κάθε σελίδα, με μικρά στοιχεία και QR.</span>
+            </label>
+            <label class="check-line">
+                <input type="radio" name="stamp_placement" value="header" <?= $placement === 'header' ? 'checked' : '' ?>>
+                <span>Κεφαλίδα σε κάθε σελίδα, με μικρά στοιχεία και QR.</span>
+            </label>
+            <label class="check-line">
+                <input type="radio" name="stamp_placement" value="appendix" <?= $placement === 'appendix' ? 'checked' : '' ?>>
+                <span>Παράρτημα: ξεχωριστή τελευταία σελίδα.</span>
+            </label>
+            <p class="field-hint">Ισχύει για τις επόμενες επικυρώσεις. Ένα ήδη σφραγισμένο PDF αλλάζει μορφή μόνο αν το έγγραφο επεξεργαστεί ξανά. Τα πλήρη στοιχεία μένουν στη σελίδα επαλήθευσης.</p>
         </div>
     </div>
     <button class="btn btn-seal" type="submit">Αποθήκευση εμφάνισης</button>

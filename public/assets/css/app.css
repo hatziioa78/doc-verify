@@ -362,6 +362,7 @@ button, input, select, textarea { font: inherit; }
 .stack-form { display: flex; flex-direction: column; gap: .8rem; }
 .narrow, .narrow-field { max-width: 34rem; }
 .check-line { display: flex; gap: .6rem; align-items: flex-start; }
+.check-line + .check-line { margin-top: .35rem; }
 .password-row { display: flex; gap: .4rem; align-items: center; }
 .password-toggle { text-decoration: none; }
 
