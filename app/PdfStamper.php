@@ -6,29 +6,39 @@ final class PdfStamper
 {
     public static function appendVerificationPage(string $sourcePdf, string $targetPdf, array $doc, string $verifyUrl): void
     {
-        if (!defined('K_TCPDF_THROW_EXCEPTION_ERROR')) {
-            define('K_TCPDF_THROW_EXCEPTION_ERROR', true);
+        self::prepareTcpdf();
+        $placement = Settings::stampPlacement();
+        if ($placement === 'header' || $placement === 'footer') {
+            self::overlayEdge($sourcePdf, $targetPdf, $doc, $verifyUrl, $placement);
+            return;
         }
-        $cache = BASE_PATH . '/storage/tmp/';
-        if (!is_dir($cache) && !mkdir($cache, 0750, true) && !is_dir($cache)) {
-            throw new RuntimeException('Λείπει ο προσωρινός φάκελος.');
-        }
-        if (!defined('K_PATH_CACHE')) {
-            define('K_PATH_CACHE', $cache);
-        }
-
-        $stamp = $cache . 'stamp-' . bin2hex(random_bytes(8)) . '.pdf';
+        $stamp = self::tempPath('stamp');
         try {
-            self::renderStamp($stamp, $doc, $verifyUrl);
-            self::concatenate($sourcePdf, $stamp, $targetPdf);
+            self::renderAppendix($stamp, $doc, $verifyUrl);
+            self::runQpdf(['qpdf', '--warning-exit-0', '--empty', '--pages', $sourcePdf, $stamp, '--', $targetPdf]);
+            self::assertOutput($targetPdf);
         } finally {
-            if (is_file($stamp)) {
-                @unlink($stamp);
-            }
+            self::unlinkQuiet($stamp);
         }
     }
 
-    private static function renderStamp(string $stampPath, array $doc, string $verifyUrl): void
+    private static function overlayEdge(string $sourcePdf, string $targetPdf, array $doc, string $verifyUrl, string $edge): void
+    {
+        $flat = self::tempPath('flat');
+        $overlay = self::tempPath('overlay');
+        try {
+            self::runQpdf(['qpdf', '--warning-exit-0', '--flatten-rotation', $sourcePdf, $flat]);
+            $pages = self::pageBoxes($flat);
+            self::renderEdge($overlay, $pages, $doc, $verifyUrl, $edge);
+            self::runQpdf(['qpdf', '--warning-exit-0', '--overlay', $overlay, '--', $flat, $targetPdf]);
+            self::assertOutput($targetPdf);
+        } finally {
+            self::unlinkQuiet($flat);
+            self::unlinkQuiet($overlay);
+        }
+    }
+
+    private static function renderAppendix(string $stampPath, array $doc, string $verifyUrl): void
     {
         $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
         $pdf->setPrintHeader(false);
@@ -121,14 +131,176 @@ final class PdfStamper
         $pdf->Output($stampPath, 'F');
     }
 
-    private static function concatenate(string $sourcePdf, string $stampPdf, string $targetPdf): void
+    private static function renderEdge(string $overlayPath, array $pages, array $doc, string $verifyUrl, string $edge): void
     {
-        $command = ['qpdf', '--warning-exit-0', '--empty', '--pages', $sourcePdf, $stampPdf, '--', $targetPdf];
-        $descriptors = [
-            1 => ['pipe', 'w'],
-            2 => ['pipe', 'w'],
+        $lines = [
+            ['bold' => true, 'text' => 'Ψηφιακή σφραγίδα · ' . Settings::headerName()],
+            ['bold' => false, 'text' => 'Θέμα: ' . (string) $doc['subject']],
+            ['bold' => false, 'text' => 'Πρωτ. ' . (string) $doc['protocol_number'] . ' · ' . (string) $doc['issuing_authority']],
+            ['bold' => false, 'text' => 'Καταχώρηση ' . fmt_dt((string) $doc['registered_at']) . ' · Ισχύς έως ' . fmt_date((string) $doc['valid_until']) . ' · ' . (string) ($doc['owner_name'] ?? '')],
         ];
-        $process = proc_open($command, $descriptors, $pipes, null, null, ['bypass_shell' => true]);
+        $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(false);
+        $pdf->SetCreator('ΣΦΡΑΓΙΣ');
+        $pdf->SetAuthor(Settings::headerName());
+        $pdf->SetTitle('Ψηφιακή επικύρωση');
+        $pdf->SetMargins(0, 0, 0);
+        $pdf->SetAutoPageBreak(false, 0);
+        $pdf->setCellPaddings(0, 0, 0, 0);
+        foreach ($pages as $page) {
+            $w = $page['width'];
+            $h = $page['height'];
+            $pdf->AddPage($w >= $h ? 'L' : 'P', [$w, $h]);
+            self::drawBand($pdf, $w, $h, $page, $edge, $lines, $verifyUrl);
+        }
+        $pdf->Output($overlayPath, 'F');
+    }
+
+    private static function drawBand(TCPDF $pdf, float $width, float $height, array $page, string $edge, array $lines, string $verifyUrl): void
+    {
+        $cropW = max(10.0, $width - $page['left'] - $page['right']);
+        $cropH = max(10.0, $height - $page['top'] - $page['bottom']);
+        $band = min(18.0, max(11.0, $cropH * 0.22));
+        $x = $page['left'];
+        $y = $edge === 'header' ? $page['top'] : max($page['top'], $height - $page['bottom'] - $band);
+        $pdf->SetFillColor(255, 255, 255);
+        $pdf->Rect($x, $y, $cropW, $band, 'F');
+        $pdf->SetDrawColor(184, 137, 61);
+        $pdf->SetLineWidth(0.2);
+        $lineY = $edge === 'header' ? $y + $band : $y;
+        $pdf->Line($x, $lineY, $x + $cropW, $lineY);
+
+        $qr = min(14.0, $band - 2.2);
+        $qrX = $x + 1.3;
+        $qrY = $y + ($band - $qr) / 2;
+        $pdf->write2DBarcode($verifyUrl, 'QRCODE,M', $qrX, $qrY, $qr, $qr, [
+            'border' => false,
+            'fgcolor' => [16, 32, 51],
+            'bgcolor' => [255, 255, 255],
+            'padding' => 0,
+        ], 'N');
+
+        $textX = $qrX + $qr + 1.6;
+        $textW = max(8.0, $x + $cropW - $textX - 1.2);
+        $lineH = min(3.2, ($band - 1.6) / count($lines));
+        $textY = $y + max(0.6, ($band - $lineH * count($lines)) / 2);
+        foreach ($lines as $i => $line) {
+            $pdf->SetFont('dejavusans', $line['bold'] ? 'B' : '', 6);
+            $pdf->SetTextColor($line['bold'] ? 110 : 16, $line['bold'] ? 84 : 32, $line['bold'] ? 38 : 51);
+            $pdf->SetXY($textX, $textY + ($i * $lineH));
+            $pdf->Cell($textW, $lineH, self::fit($pdf, $line['text'], $textW), 0, 0, 'L');
+        }
+    }
+
+    private static function fit(TCPDF $pdf, string $text, float $width): string
+    {
+        $text = preg_replace('/\s+/u', ' ', trim($text)) ?? '';
+        if ($text === '' || $pdf->GetStringWidth($text) <= $width) {
+            return $text;
+        }
+        $ellipsis = '…';
+        $low = 0;
+        $high = mb_strlen($text);
+        while ($low < $high) {
+            $mid = intdiv($low + $high + 1, 2);
+            $candidate = mb_substr($text, 0, $mid) . $ellipsis;
+            if ($pdf->GetStringWidth($candidate) <= $width) {
+                $low = $mid;
+            } else {
+                $high = $mid - 1;
+            }
+        }
+        return $low === 0 ? $ellipsis : mb_substr($text, 0, $low) . $ellipsis;
+    }
+
+    /** @return list<array{width: float, height: float, top: float, bottom: float, left: float, right: float}> */
+    private static function pageBoxes(string $pdfPath): array
+    {
+        $raw = self::runQpdf(['qpdf', '--warning-exit-0', '--json', $pdfPath]);
+        $data = json_decode($raw, true);
+        if (!is_array($data) || !isset($data['pages'], $data['qpdf'][1]) || !is_array($data['pages'])) {
+            throw new RuntimeException('Το PDF δεν μπόρεσε να σφραγιστεί. Χρησιμοποιήστε ένα έγκυρο, μη κλειδωμένο αρχείο PDF.');
+        }
+        $objects = $data['qpdf'][1];
+        $pages = [];
+        foreach ($data['pages'] as $page) {
+            if (!is_array($page) || !isset($page['object'])) {
+                continue;
+            }
+            $dict = $objects['obj:' . $page['object']]['value'] ?? null;
+            if (!is_array($dict)) {
+                continue;
+            }
+            $media = self::boxOf($objects, self::inherited($objects, $dict, '/MediaBox'));
+            if ($media === null) {
+                throw new RuntimeException('Το PDF δεν μπόρεσε να σφραγιστεί. Χρησιμοποιήστε ένα έγκυρο, μη κλειδωμένο αρχείο PDF.');
+            }
+            $crop = self::boxOf($objects, self::inherited($objects, $dict, '/CropBox')) ?? $media;
+            $scale = 25.4 / 72;
+            $width = ($media['urx'] - $media['llx']) * $scale;
+            $height = ($media['ury'] - $media['lly']) * $scale;
+            if ($width < 20 || $height < 20) {
+                throw new RuntimeException('Το PDF δεν μπόρεσε να σφραγιστεί. Χρησιμοποιήστε ένα έγκυρο, μη κλειδωμένο αρχείο PDF.');
+            }
+            $pages[] = [
+                'width' => $width,
+                'height' => $height,
+                'left' => max(0.0, ($crop['llx'] - $media['llx']) * $scale),
+                'right' => max(0.0, ($media['urx'] - $crop['urx']) * $scale),
+                'top' => max(0.0, ($media['ury'] - $crop['ury']) * $scale),
+                'bottom' => max(0.0, ($crop['lly'] - $media['lly']) * $scale),
+            ];
+        }
+        if ($pages === []) {
+            throw new RuntimeException('Το PDF δεν μπόρεσε να σφραγιστεί. Χρησιμοποιήστε ένα έγκυρο, μη κλειδωμένο αρχείο PDF.');
+        }
+        return $pages;
+    }
+
+    private static function inherited(array $objects, array $dict, string $key, int $depth = 0): mixed
+    {
+        if (array_key_exists($key, $dict)) {
+            return $dict[$key];
+        }
+        if ($depth > 6 || !isset($dict['/Parent']) || !is_string($dict['/Parent'])) {
+            return null;
+        }
+        $parent = $objects['obj:' . $dict['/Parent']]['value'] ?? null;
+        if (!is_array($parent)) {
+            return null;
+        }
+        return self::inherited($objects, $parent, $key, $depth + 1);
+    }
+
+    /** @return array{llx: float, lly: float, urx: float, ury: float}|null */
+    private static function boxOf(array $objects, mixed $value, int $depth = 0): ?array
+    {
+        if ($depth > 4) {
+            return null;
+        }
+        if (is_string($value) && preg_match('/^\d+ \d+ R$/', $value) === 1) {
+            return self::boxOf($objects, $objects['obj:' . $value]['value'] ?? null, $depth + 1);
+        }
+        if (!is_array($value) || count($value) !== 4) {
+            return null;
+        }
+        $nums = [];
+        foreach ($value as $item) {
+            if (!is_numeric($item)) {
+                return null;
+            }
+            $nums[] = (float) $item;
+        }
+        if ($nums[2] <= $nums[0] || $nums[3] <= $nums[1]) {
+            return null;
+        }
+        return ['llx' => $nums[0], 'lly' => $nums[1], 'urx' => $nums[2], 'ury' => $nums[3]];
+    }
+
+    private static function runQpdf(array $command): string
+    {
+        $process = proc_open($command, [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, null, null, ['bypass_shell' => true]);
         if (!is_resource($process)) {
             throw new RuntimeException('Δεν ήταν δυνατή η προσθήκη της σελίδας επικύρωσης. Ελέγξτε ότι το qpdf είναι εγκατεστημένο.');
         }
@@ -137,12 +309,46 @@ final class PdfStamper
         fclose($pipes[1]);
         fclose($pipes[2]);
         $code = proc_close($process);
-        if ($code !== 0 || !is_file($targetPdf) || filesize($targetPdf) < 64) {
-            $detail = trim($stdout . "\n" . $stderr);
+        if ($code !== 0) {
+            $detail = trim(($stdout === false ? '' : $stdout) . "\n" . ($stderr === false ? '' : $stderr));
             if (stripos($detail, 'password') !== false || stripos($detail, 'encrypt') !== false) {
                 throw new RuntimeException('Το PDF είναι κλειδωμένο με κωδικό και δεν μπορεί να επικυρωθεί.');
             }
             throw new RuntimeException('Το PDF δεν μπόρεσε να σφραγιστεί. Χρησιμοποιήστε ένα έγκυρο, μη κλειδωμένο αρχείο PDF.');
+        }
+        return $stdout === false ? '' : $stdout;
+    }
+
+    private static function assertOutput(string $targetPdf): void
+    {
+        if (!is_file($targetPdf) || filesize($targetPdf) < 64) {
+            throw new RuntimeException('Το PDF δεν μπόρεσε να σφραγιστεί. Χρησιμοποιήστε ένα έγκυρο, μη κλειδωμένο αρχείο PDF.');
+        }
+    }
+
+    private static function prepareTcpdf(): void
+    {
+        if (!defined('K_TCPDF_THROW_EXCEPTION_ERROR')) {
+            define('K_TCPDF_THROW_EXCEPTION_ERROR', true);
+        }
+        $cache = BASE_PATH . '/storage/tmp/';
+        if (!is_dir($cache) && !mkdir($cache, 0750, true) && !is_dir($cache)) {
+            throw new RuntimeException('Λείπει ο προσωρινός φάκελος.');
+        }
+        if (!defined('K_PATH_CACHE')) {
+            define('K_PATH_CACHE', $cache);
+        }
+    }
+
+    private static function tempPath(string $prefix): string
+    {
+        return BASE_PATH . '/storage/tmp/' . $prefix . '-' . bin2hex(random_bytes(8)) . '.pdf';
+    }
+
+    private static function unlinkQuiet(string $path): void
+    {
+        if (is_file($path)) {
+            @unlink($path);
         }
     }
 }

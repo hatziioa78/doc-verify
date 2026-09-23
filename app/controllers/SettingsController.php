@@ -28,6 +28,7 @@ final class SettingsController
         $contact = post_string('footer_contact', 500);
         $credits = post_string('footer_credits', 500);
         $months = (int) post_raw('default_validity_months');
+        $placement = post_string('stamp_placement', 20);
         $errors = [];
         if (mb_strlen($header) < 2) {
             $errors[] = 'Συμπληρώστε το όνομα της κεφαλίδας.';
@@ -41,6 +42,9 @@ final class SettingsController
         if ($months < 1 || $months > 120) {
             $errors[] = 'Η προεπιλεγμένη διάρκεια ισχύος πρέπει να είναι από 1 έως 120 μήνες.';
         }
+        if (!in_array($placement, ['appendix', 'header', 'footer'], true)) {
+            $errors[] = 'Επιλέξτε πού θα μπαίνει η ψηφιακή σφραγίδα.';
+        }
         if ($errors !== []) {
             flash('danger', implode(' ', $errors));
             redirect('/settings');
@@ -52,9 +56,10 @@ final class SettingsController
             'footer_contact' => $contact,
             'footer_credits' => $credits,
             'default_validity_months' => (string) $months,
+            'stamp_placement' => $placement,
         ]);
-        Logger::record((int) $actor['id'], 'settings', 'Ενημέρωση εμφάνισης, URL QR και URL διακομιστή');
-        flash('success', 'Οι παράμετροι αποθηκεύτηκαν. Τα νέα QR χρησιμοποιούν το URL του QR και τα email το URL του διακομιστή.');
+        Logger::record((int) $actor['id'], 'settings', 'Ενημέρωση εμφάνισης, URL και μορφής ψηφιακής σφραγίδας');
+        flash('success', 'Οι παράμετροι αποθηκεύτηκαν. Τα νέα έγγραφα σφραγίζονται με τη μορφή που επιλέξατε.');
         redirect('/settings');
     }
 
@@ -381,6 +386,7 @@ final class SettingsController
             'footer_contact' => '',
             'footer_credits' => '',
             'default_validity_months' => '12',
+            'stamp_placement' => 'footer',
         ]);
     }
 

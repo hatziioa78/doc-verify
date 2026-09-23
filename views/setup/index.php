@@ -73,6 +73,22 @@
                     <p class="field-hint">Για τους συνδέσμους email. Αν μείνει κενό, χρησιμοποιείται το URL του QR. Μπορεί να διαφέρει πίσω από web proxy.</p>
                 </div>
                 <div class="col-12">
+                    <p class="form-label">Ψηφιακή σφραγίδα</p>
+                    <?php $placement = (string) ($old['stamp_placement'] ?? 'footer'); ?>
+                    <label class="check-line">
+                        <input type="radio" name="stamp_placement" value="footer" <?= $placement === 'footer' ? 'checked' : '' ?>>
+                        <span>Υποσέλιδο σε κάθε σελίδα, με μικρά στοιχεία και QR.</span>
+                    </label>
+                    <label class="check-line">
+                        <input type="radio" name="stamp_placement" value="header" <?= $placement === 'header' ? 'checked' : '' ?>>
+                        <span>Κεφαλίδα σε κάθε σελίδα, με μικρά στοιχεία και QR.</span>
+                    </label>
+                    <label class="check-line">
+                        <input type="radio" name="stamp_placement" value="appendix" <?= $placement === 'appendix' ? 'checked' : '' ?>>
+                        <span>Παράρτημα: ξεχωριστή τελευταία σελίδα.</span>
+                    </label>
+                </div>
+                <div class="col-12">
                     <label class="check-line">
                         <input type="checkbox" name="private_networks" value="1" <?= $old['private_networks'] === '1' ? 'checked' : '' ?>>
                         <span>Να επιτρέπονται τα ιδιωτικά δίκτυα και ο τοπικός διακομιστής για τη σύνδεση χρηστών.</span>

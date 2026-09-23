@@ -20,6 +20,7 @@ final class SetupController
                 'department' => '',
                 'email' => '',
                 'private_networks' => '1',
+                'stamp_placement' => 'footer',
             ],
         ], 'layouts/guest');
     }
@@ -75,6 +76,7 @@ final class SetupController
                 'footer_contact' => '',
                 'footer_credits' => '',
                 'default_validity_months' => '12',
+                'stamp_placement' => $old['stamp_placement'],
             ] as $key => $value) {
                 $settings->execute([$key, $value]);
             }
@@ -126,6 +128,7 @@ final class SetupController
             'department' => post_string('department', 150),
             'email' => normalize_email(post_string('email', 190)),
             'private_networks' => post_raw('private_networks') === '1' ? '1' : '',
+            'stamp_placement' => post_string('stamp_placement', 20),
         ];
     }
 
@@ -159,6 +162,9 @@ final class SetupController
         }
         if ($old['server_url'] !== '' && !self::validSiteUrl($old['server_url'])) {
             $errors[] = 'Το URL του διακομιστή πρέπει να αρχίζει από http:// ή https://.';
+        }
+        if (!in_array($old['stamp_placement'], ['appendix', 'header', 'footer'], true)) {
+            $errors[] = 'Επιλέξτε πού θα μπαίνει η ψηφιακή σφραγίδα.';
         }
         return $errors;
     }

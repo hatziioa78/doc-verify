@@ -23,6 +23,7 @@ final class Settings
             'footer_contact' => '',
             'footer_credits' => '',
             'default_validity_months' => '12',
+            'stamp_placement' => 'footer',
             'smtp_host' => '',
             'smtp_port' => '587',
             'smtp_username' => '',
@@ -101,6 +102,15 @@ final class Settings
             return rtrim($configured, '/');
         }
         return self::siteUrl();
+    }
+
+    public static function stampPlacement(): string
+    {
+        $value = self::get('stamp_placement', 'footer');
+        if (!in_array($value, ['appendix', 'header', 'footer'], true)) {
+            return 'footer';
+        }
+        return $value;
     }
 
     public static function validityMonths(): int
