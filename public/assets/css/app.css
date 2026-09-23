@@ -170,9 +170,17 @@ button, input, select, textarea { font: inherit; }
     text-decoration: none;
     padding: .3rem .4rem 1.2rem;
 }
-.brand-mark, .brand-sub { display: block; }
+.brand-mark, .brand-sub, .brand-official { display: block; }
 .brand-mark { font-size: 1.35rem; }
 .brand-sub { color: rgba(246, 241, 231, .68); font-size: .86rem; }
+.brand-official {
+    margin-top: .2rem;
+    color: rgba(230, 201, 138, .78);
+    font-size: .62rem;
+    font-weight: 700;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+}
 
 .brand-seal {
     width: 3rem;
@@ -468,7 +476,31 @@ button, input, select, textarea { font: inherit; }
     align-items: center;
 }
 .login-panel { color: #f6f1e7; }
-.login-panel h1 { font-size: clamp(2.6rem, 5vw, 4.4rem); margin: .2rem 0 .6rem; }
+.login-panel h1 { font-size: clamp(2.6rem, 5vw, 4.4rem); margin: .2rem 0 .35rem; }
+.login-official {
+    margin: 0 0 .45rem;
+    color: rgba(230, 201, 138, .82);
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+}
+.login-org {
+    margin: 0 0 .7rem;
+    color: #f6f1e7;
+    font-family: "Literata", serif;
+    font-size: 1.25rem;
+}
+.login-version {
+    position: fixed;
+    top: .7rem;
+    right: .9rem;
+    z-index: 5;
+    margin: 0;
+    font-size: .68rem;
+    letter-spacing: .04em;
+    color: rgba(16, 32, 51, .42);
+}
 .login-panel .lede { color: rgba(246, 241, 231, .82); }
 .trust-list { list-style: none; padding: 0; margin: 1.5rem 0 0; display: flex; flex-direction: column; gap: .8rem; }
 .trust-list li { display: flex; gap: .7rem; align-items: flex-start; }
@@ -576,6 +608,7 @@ button, input, select, textarea { font: inherit; }
     }
     .login-shell, .split-panels, .doc-hero, .meta-grid, .cert-grid { grid-template-columns: 1fr; }
     .guest-body { background: #102033; }
+    .login-version { color: rgba(246, 241, 231, .42); }
     .login-panel { padding-top: 1rem; }
     .app-content, .topbar { padding-left: 1rem; padding-right: 1rem; }
 }

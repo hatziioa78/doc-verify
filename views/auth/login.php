@@ -1,9 +1,13 @@
+<p class="login-version">v<?= e(app_version()) ?></p>
 <div class="login-shell">
     <section class="login-panel">
         <div class="seal-lockup">
             <span class="brand-seal brand-seal-lg">ΣΦ</span>
-            <p class="kicker">Ψηφιακή σφραγίδα</p>
-            <h1><?= e(Settings::headerName()) ?></h1>
+            <h1>ΣΦΡΑΓΙΣ</h1>
+            <p class="login-official">Επίσημη κεφαλίδα</p>
+            <?php if (Settings::headerName() !== 'ΣΦΡΑΓΙΣ'): ?>
+                <p class="login-org"><?= e(Settings::headerName()) ?></p>
+            <?php endif; ?>
             <p class="lede">Κάθε έγγραφο κλείνει με έναν σύνδεσμο που δεν μαντεύεται. Όποιος σαρώνει τον κωδικό βλέπει αν είναι γνήσιο, ακυρωμένο ή αν έχει λήξει.</p>
         </div>
         <ul class="trust-list">

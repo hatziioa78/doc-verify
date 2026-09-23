@@ -17,6 +17,15 @@ function today(): string
     return (new DateTimeImmutable('today'))->format('Y-m-d');
 }
 
+function app_version(): string
+{
+    static $version = null;
+    if ($version === null) {
+        $version = trim((string) file_get_contents(BASE_PATH . '/VERSION'));
+    }
+    return $version;
+}
+
 function base_path(): string
 {
     $script = str_replace('\\', '/', (string) ($_SERVER['SCRIPT_NAME'] ?? '/index.php'));

@@ -23,7 +23,7 @@ $org = Settings::headerName();
             <span class="brand-seal">ΣΦ</span>
             <span>
                 <span class="brand-mark">ΣΦΡΑΓΙΣ</span>
-                <span class="brand-sub">Μητρώο γνησιότητας</span>
+                <span class="brand-official">Επίσημη κεφαλίδα</span>
             </span>
         </a>
         <nav class="side-nav" aria-label="Κύρια πλοήγηση">
@@ -58,7 +58,6 @@ $org = Settings::headerName();
                 <span></span><span></span><span></span>
             </button>
             <div class="topbar-org">
-                <p class="kicker">Επίσημη κεφαλίδα</p>
                 <strong><?= e($org) ?></strong>
             </div>
             <?php if ($currentUser): ?>
