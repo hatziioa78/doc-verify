@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 final class Migrate
 {
-    private const VERSION = '3';
+    private const VERSION = '4';
 
     public static function run(): void
     {
@@ -82,6 +82,8 @@ final class Migrate
             $insert = $pdo->prepare('INSERT INTO settings (skey, svalue) VALUES (?, ?)');
             $insert->execute(['stamp_placement', 'footer']);
         }
+
+        $pdo->exec('ALTER TABLE documents MODIFY valid_until DATE NULL');
     }
 
     private static function hasColumn(PDO $pdo, string $table, string $column): bool

@@ -172,6 +172,15 @@ function valid_date(string $value): bool
     return $dt instanceof DateTimeImmutable && $dt->format('Y-m-d') === $value;
 }
 
+function fmt_validity(?string $value): string
+{
+    if ($value === null || substr($value, 0, 10) === '') {
+        return '';
+    }
+    $formatted = fmt_date($value);
+    return $formatted === '—' ? '' : $formatted;
+}
+
 function fmt_date(?string $value): string
 {
     if ($value === null || $value === '') {

@@ -21,7 +21,7 @@ $canceller = trim((string) ($doc['canceller_last_name'] ?? '') . ' ' . (string) 
             <div><dt>Αριθμός πρωτοκόλλου</dt><dd class="proto"><?= e((string) $doc['protocol_number']) ?></dd></div>
             <div><dt>Εκδούσα αρχή / τμήμα</dt><dd><?= e((string) $doc['issuing_authority']) ?></dd></div>
             <div><dt>Καταχώρηση</dt><dd><?= e(fmt_dt((string) $doc['registered_at'])) ?></dd></div>
-            <div><dt>Έγκυρο έως</dt><dd><?= e(fmt_date((string) $doc['valid_until'])) ?></dd></div>
+            <div><dt>Έγκυρο έως</dt><dd><?= e(fmt_validity((string) ($doc['valid_until'] ?? '')) ?: 'Χωρίς λήξη') ?></dd></div>
             <div><dt>Καταχωρίστηκε από</dt><dd><?= e($owner) ?><small><?= e((string) $doc['owner_email']) ?></small></dd></div>
             <?php if (!empty($doc['confirmed_by'])): ?>
                 <div><dt>Επιβεβαιώθηκε από</dt><dd><?= e(trim((string) $doc['confirmer_last_name'] . ' ' . (string) $doc['confirmer_first_name'])) ?><small><?= e(fmt_dt((string) $doc['confirmed_at'])) ?></small></dd></div>

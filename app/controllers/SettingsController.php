@@ -39,8 +39,8 @@ final class SettingsController
         if (!SetupController::validSiteUrl($server)) {
             $errors[] = 'Το URL του διακομιστή πρέπει να αρχίζει από http:// ή https://.';
         }
-        if ($months < 1 || $months > 120) {
-            $errors[] = 'Η προεπιλεγμένη διάρκεια ισχύος πρέπει να είναι από 1 έως 120 μήνες.';
+        if ($months < 0 || $months > 120) {
+            $errors[] = 'Η προεπιλεγμένη διάρκεια ισχύος πρέπει να είναι από 0 έως 120 μήνες. Το 0 σημαίνει χωρίς λήξη.';
         }
         if (!in_array($placement, ['appendix', 'header', 'footer'], true)) {
             $errors[] = 'Επιλέξτε πού θα μπαίνει η ψηφιακή σφραγίδα.';

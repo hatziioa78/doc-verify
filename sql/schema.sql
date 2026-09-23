@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS documents (
     issuing_authority VARCHAR(255) NOT NULL,
     info TEXT NOT NULL,
     registered_at DATETIME NOT NULL,
-    valid_until DATE NOT NULL,
+    valid_until DATE NULL,
     token CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
     status ENUM('pending', 'active', 'cancelled') NOT NULL DEFAULT 'active',
     cancellation_reason VARCHAR(500) NULL,

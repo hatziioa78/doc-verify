@@ -22,7 +22,7 @@ $headings = [
             <div><dt>Εκδούσα αρχή / τμήμα</dt><dd><?= e((string) $doc['issuing_authority']) ?></dd></div>
             <div><dt>Πληροφορίες</dt><dd class="pre"><?= e((string) $doc['info']) ?></dd></div>
             <div><dt>Ημερομηνία καταχώρησης</dt><dd><?= e(fmt_dt((string) $doc['registered_at'])) ?></dd></div>
-            <div><dt>Έγκυρο έως</dt><dd><?= e(fmt_date((string) $doc['valid_until'])) ?></dd></div>
+            <div><dt>Έγκυρο έως</dt><dd><?= e(fmt_validity((string) ($doc['valid_until'] ?? '')) ?: 'Χωρίς λήξη') ?></dd></div>
             <div><dt>Καταχωρίστηκε από</dt><dd><?= e(trim((string) $doc['last_name'] . ' ' . (string) $doc['first_name'])) ?></dd></div>
         </dl>
         <?php if ($state === 'cancelled'): ?>

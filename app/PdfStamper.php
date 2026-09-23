@@ -76,9 +76,11 @@ final class PdfStamper
             'Αριθμός πρωτοκόλλου' => (string) $doc['protocol_number'],
             'Εκδούσα αρχή / τμήμα' => (string) $doc['issuing_authority'],
             'Ημερομηνία καταχώρησης' => fmt_dt((string) $doc['registered_at']),
-            'Ισχύς έως' => fmt_date((string) $doc['valid_until']),
-            'Καταχωρίστηκε από' => (string) ($doc['owner_name'] ?? ''),
         ];
+        $until = fmt_validity((string) ($doc['valid_until'] ?? ''));
+        if ($until !== '') {
+            $rows['Ισχύς έως'] = $until;
+        }
         foreach ($rows as $label => $value) {
             $pdf->SetFont('dejavusans', 'B', 9);
             $pdf->SetTextColor(110, 84, 38);
@@ -133,11 +135,16 @@ final class PdfStamper
 
     private static function renderEdge(string $overlayPath, array $pages, array $doc, string $verifyUrl, string $edge): void
     {
+        $registered = 'Καταχώρηση ' . fmt_dt((string) $doc['registered_at']);
+        $until = fmt_validity((string) ($doc['valid_until'] ?? ''));
+        if ($until !== '') {
+            $registered .= ' · Ισχύς έως ' . $until;
+        }
         $lines = [
             ['bold' => true, 'text' => 'Ψηφιακή σφραγίδα · ' . Settings::headerName()],
             ['bold' => false, 'text' => 'Θέμα: ' . (string) $doc['subject']],
             ['bold' => false, 'text' => 'Πρωτ. ' . (string) $doc['protocol_number'] . ' · ' . (string) $doc['issuing_authority']],
-            ['bold' => false, 'text' => 'Καταχώρηση ' . fmt_dt((string) $doc['registered_at']) . ' · Ισχύς έως ' . fmt_date((string) $doc['valid_until']) . ' · ' . (string) ($doc['owner_name'] ?? '')],
+            ['bold' => false, 'text' => $registered],
         ];
         $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
         $pdf->setPrintHeader(false);

@@ -46,9 +46,6 @@ final class DocumentController
         if ($old['info'] === '') {
             $old['info'] = default_info($user);
         }
-        if ($old['valid_until'] === '') {
-            $old['valid_until'] = Settings::defaultValidUntil();
-        }
         $errors = self::validate($old);
         if ($errors !== []) {
             render('documents/form', [
@@ -322,7 +319,7 @@ final class DocumentController
         if (mb_strlen($old['info']) < 2) {
             $errors[] = 'Συμπληρώστε τις πληροφορίες του εγγράφου.';
         }
-        if (!valid_date($old['valid_until'])) {
+        if ($old['valid_until'] !== '' && !valid_date($old['valid_until'])) {
             $errors[] = 'Η ημερομηνία ισχύος δεν είναι έγκυρη.';
         }
         return $errors;

@@ -116,7 +116,7 @@ final class Settings
     public static function validityMonths(): int
     {
         $months = (int) self::get('default_validity_months', '12');
-        if ($months < 1 || $months > 120) {
+        if ($months < 0 || $months > 120) {
             return 12;
         }
         return $months;
@@ -124,8 +124,12 @@ final class Settings
 
     public static function defaultValidUntil(): string
     {
+        $months = self::validityMonths();
+        if ($months === 0) {
+            return '';
+        }
         return (new DateTimeImmutable('today'))
-            ->modify('+' . self::validityMonths() . ' months')
+            ->modify('+' . $months . ' months')
             ->format('Y-m-d');
     }
 }

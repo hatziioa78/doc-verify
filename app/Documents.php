@@ -32,10 +32,10 @@ final class Documents
         }
         $status = (string) ($filters['status'] ?? '');
         if ($status === 'active') {
-            $where[] = "d.status = 'active' AND d.valid_until >= ?";
+            $where[] = "d.status = 'active' AND (d.valid_until IS NULL OR d.valid_until >= ?)";
             $params[] = today();
         } elseif ($status === 'expired') {
-            $where[] = "d.status = 'active' AND d.valid_until < ?";
+            $where[] = "d.status = 'active' AND d.valid_until IS NOT NULL AND d.valid_until < ?";
             $params[] = today();
         } elseif ($status === 'cancelled') {
             $where[] = "d.status = 'cancelled'";
@@ -176,7 +176,7 @@ final class Documents
                 $input['issuing_authority'],
                 $input['info'],
                 $registeredAt,
-                $input['valid_until'],
+                self::validityValue((string) $input['valid_until']),
                 $token,
                 $immediate ? 'active' : 'pending',
                 self::safeOriginalName((string) ($file['name'] ?? 'document.pdf')),
@@ -276,7 +276,7 @@ final class Documents
                 $input['protocol_number'],
                 $input['issuing_authority'],
                 $input['info'],
-                $input['valid_until'],
+                self::validityValue((string) $input['valid_until']),
                 (int) $doc['id'],
             ]);
         } catch (Throwable $e) {
@@ -348,6 +348,11 @@ final class Documents
             'Διαγραφή εγγράφου ' . self::summary((string) $doc['subject'], (string) $doc['protocol_number']),
             (int) $doc['id']
         );
+    }
+
+    private static function validityValue(string $value): ?string
+    {
+        return $value === '' ? null : $value;
     }
 
     public static function summary(string $subject, string $protocol): string
