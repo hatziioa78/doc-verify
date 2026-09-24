@@ -1,10 +1,13 @@
+<p class="login-system">Σύστημα Έκδοσης &amp; Επικύρωσης Εγγράφων</p>
 <p class="login-version">v<?= e(app_version()) ?></p>
 <div class="login-page">
 <div class="login-shell">
     <section class="login-panel">
         <div class="seal-lockup">
-            <span class="brand-seal brand-seal-lg">ΣΦ</span>
-            <h1>ΣΦΡΑΓΙΣ</h1>
+            <div class="seal-wordmark">
+                <span class="brand-seal brand-seal-lg">ΣΦ</span>
+                <h1>ΣΦΡΑΓΙΣ</h1>
+            </div>
             <p class="login-org"><?= e(Settings::headerName()) ?></p>
             <p class="lede">Βάζετε σφραγίδα σε ένα PDF. Όποιος σαρώνει τον κωδικό βλέπει αν το έγγραφο είναι γνήσιο.</p>
         </div>
