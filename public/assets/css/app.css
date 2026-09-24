@@ -466,6 +466,7 @@ button, input, select, textarea { font: inherit; }
 }
 .guest-flash { max-width: 1100px; margin: 1rem auto 0; padding: 0 1rem; }
 .login-shell, .setup-shell { max-width: 1100px; margin: 0 auto; padding: 2rem 1rem 3rem; }
+.login-shell { padding-top: 3.6rem; }
 .login-page {
     min-height: 100vh;
     display: flex;
@@ -479,13 +480,33 @@ button, input, select, textarea { font: inherit; }
     align-items: center;
 }
 .login-panel { color: #f6f1e7; }
+.seal-wordmark {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
 .login-panel h1 {
     font-size: clamp(2.6rem, 5vw, 4.4rem);
-    margin: .2rem 0 .15rem;
-    line-height: 1.05;
+    margin: 0;
+    line-height: 1;
     color: var(--seal);
     letter-spacing: 0.045em;
     font-weight: 400;
+}
+.login-system {
+    position: fixed;
+    top: .85rem;
+    left: 1.15rem;
+    z-index: 30;
+    margin: 0;
+    max-width: calc(100vw - 6.5rem);
+    font-family: "GFS Didot", "Times New Roman", serif;
+    font-size: clamp(.86rem, 1.45vw, 1.08rem);
+    font-weight: 400;
+    letter-spacing: .035em;
+    line-height: 1.25;
+    color: #f3e6c4;
+    text-shadow: 0 1px 2px rgba(8, 16, 28, .5);
 }
 .login-org {
     margin: 0 0 .8rem;
