@@ -37,6 +37,13 @@
                 <span>Ενεργός λογαριασμός</span>
             </label>
         </div>
+        <div class="col-12" data-secretary-only>
+            <label class="check-line">
+                <input type="checkbox" name="notify_approval" value="1" <?= (int) ($old['notify_approval'] ?? 1) === 1 ? 'checked' : '' ?>>
+                <span>Να λαμβάνει email για επικύρωση εγγράφου</span>
+            </label>
+            <p class="field-hint">Ισχύει μόνο για τη Γραμματεία και είναι εξ ορισμού ενεργή. Το μήνυμα στέλνεται όταν ένα έγγραφο περιμένει επιβεβαίωση, εφόσον η αποστολή προς τη Γραμματεία είναι ανοιχτή στις ρυθμίσεις.</p>
+        </div>
         <div class="col-12" data-user-only>
             <label class="check-line">
                 <input type="checkbox" name="certify_without_approval" value="1" <?= (int) ($old['certify_without_approval'] ?? 0) === 1 ? 'checked' : '' ?>>

@@ -93,7 +93,7 @@
                 <div class="col-12">
                     <label class="check-line">
                         <input type="checkbox" name="notify_secretary" value="1" <?= $old['notify_secretary'] === '1' ? 'checked' : '' ?>>
-                        <span>Να στέλνεται email σε κάθε ενεργή Γραμματεία όταν ζητείται επιβεβαίωση</span>
+                        <span>Να στέλνεται email στη Γραμματεία που έχει ενεργή τη λήψη, όταν ζητείται επιβεβαίωση</span>
                     </label>
                 </div>
             </div>

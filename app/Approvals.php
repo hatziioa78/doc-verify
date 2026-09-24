@@ -20,7 +20,7 @@ final class Approvals
         if (!$doc || ($doc['status'] ?? '') !== 'pending') {
             return '';
         }
-        $secretaries = self::secretaries();
+        $secretaries = self::secretaries(false);
         if ($secretaries === []) {
             return 'Το έγγραφο περιμένει επιβεβαίωση, αλλά δεν υπάρχει ενεργή Γραμματεία για να σταλεί το email.';
         }
@@ -30,7 +30,7 @@ final class Approvals
 
         $jobs = [];
         if (Settings::flag('notify_secretary')) {
-            foreach ($secretaries as $secretary) {
+            foreach (self::secretaries(true) as $secretary) {
                 $jobs[normalize_email((string) $secretary['email'])] = $secretary;
             }
         }
@@ -39,6 +39,9 @@ final class Approvals
             if (valid_email($extra) && !isset($jobs[$extra])) {
                 $jobs[$extra] = $secretaries[0];
             }
+        }
+        if ($jobs === [] && Settings::flag('notify_secretary')) {
+            return 'Το έγγραφο περιμένει επιβεβαίωση. Καμία Γραμματεία δεν έχει ενεργή τη λήψη email επικύρωσης.';
         }
         if ($jobs === []) {
             return '';
@@ -110,11 +113,13 @@ final class Approvals
         redirect('/documents/' . $documentId);
     }
 
-    private static function secretaries(): array
+    private static function secretaries(bool $mailOnly): array
     {
-        return Database::pdo()->query(
-            "SELECT id, email, full_name FROM users WHERE role = 'secretary' AND active = 1 ORDER BY id"
-        )->fetchAll();
+        $sql = "SELECT id, email, full_name FROM users WHERE role = 'secretary' AND active = 1";
+        if ($mailOnly) {
+            $sql .= ' AND notify_approval = 1';
+        }
+        return Database::pdo()->query($sql . ' ORDER BY id')->fetchAll();
     }
 
     private static function issue(int $documentId, int $secretaryId): string

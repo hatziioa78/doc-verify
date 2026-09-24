@@ -56,11 +56,17 @@
 
     const roleSelect = document.querySelector("#role");
     const userOnly = document.querySelector("[data-user-only]");
+    const secretaryOnly = document.querySelector("[data-secretary-only]");
     const syncRole = () => {
-        if (!roleSelect || !userOnly) {
+        if (!roleSelect) {
             return;
         }
-        userOnly.hidden = roleSelect.value !== "user";
+        if (userOnly) {
+            userOnly.hidden = roleSelect.value !== "user";
+        }
+        if (secretaryOnly) {
+            secretaryOnly.hidden = roleSelect.value !== "secretary";
+        }
     };
     roleSelect?.addEventListener("change", syncRole);
     syncRole();

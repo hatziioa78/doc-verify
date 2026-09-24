@@ -44,8 +44,8 @@ final class UserController
         $stamp = now();
         $password = post_raw('password');
         $stmt = Database::pdo()->prepare(
-            'INSERT INTO users (full_name, department, email, password_hash, password_insecure, role, active, certify_without_approval, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+            'INSERT INTO users (full_name, department, email, password_hash, password_insecure, role, active, certify_without_approval, notify_approval, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
         try {
             $stmt->execute([
@@ -57,6 +57,7 @@ final class UserController
                 $old['role'],
                 $old['active'],
                 $old['certify_without_approval'],
+                $old['notify_approval'],
                 $stamp,
                 $stamp,
             ]);
@@ -90,7 +91,7 @@ final class UserController
     {
         $actor = Auth::requireManager();
         $editing = self::find($id);
-        $old = self::fromPost(false);
+        $old = self::fromPost(false, $editing);
         $password = post_raw('password');
         $errors = self::validate($old, $editing, $password);
         $errors = array_merge($errors, self::guardRole($actor, $editing, $old));
@@ -104,14 +105,14 @@ final class UserController
         }
         if ($password !== '') {
             $stmt = Database::pdo()->prepare(
-                'UPDATE users SET full_name = ?, department = ?, email = ?, password_hash = ?, password_insecure = ?, role = ?, active = ?, certify_without_approval = ?, updated_at = ? WHERE id = ?'
+                'UPDATE users SET full_name = ?, department = ?, email = ?, password_hash = ?, password_insecure = ?, role = ?, active = ?, certify_without_approval = ?, notify_approval = ?, updated_at = ? WHERE id = ?'
             );
-            $params = [$old['full_name'], $old['department'], $old['email'], password_hash($password, PASSWORD_DEFAULT), password_is_insecure($password) ? 1 : 0, $old['role'], $old['active'], $old['certify_without_approval'], now(), $id];
+            $params = [$old['full_name'], $old['department'], $old['email'], password_hash($password, PASSWORD_DEFAULT), password_is_insecure($password) ? 1 : 0, $old['role'], $old['active'], $old['certify_without_approval'], $old['notify_approval'], now(), $id];
         } else {
             $stmt = Database::pdo()->prepare(
-                'UPDATE users SET full_name = ?, department = ?, email = ?, role = ?, active = ?, certify_without_approval = ?, updated_at = ? WHERE id = ?'
+                'UPDATE users SET full_name = ?, department = ?, email = ?, role = ?, active = ?, certify_without_approval = ?, notify_approval = ?, updated_at = ? WHERE id = ?'
             );
-            $params = [$old['full_name'], $old['department'], $old['email'], $old['role'], $old['active'], $old['certify_without_approval'], now(), $id];
+            $params = [$old['full_name'], $old['department'], $old['email'], $old['role'], $old['active'], $old['certify_without_approval'], $old['notify_approval'], now(), $id];
         }
         try {
             $stmt->execute($params);
@@ -183,6 +184,7 @@ final class UserController
             'role' => 'user',
             'active' => 1,
             'certify_without_approval' => 0,
+            'notify_approval' => 1,
         ];
     }
 
@@ -195,16 +197,24 @@ final class UserController
             'role' => (string) $user['role'],
             'active' => (int) $user['active'],
             'certify_without_approval' => (int) ($user['certify_without_approval'] ?? 0),
+            'notify_approval' => (int) ($user['notify_approval'] ?? 1),
         ];
     }
 
-    private static function fromPost(bool $creating): array
+    private static function fromPost(bool $creating, ?array $editing = null): array
     {
         $role = post_string('role', 20);
         if (!in_array($role, ['manager', 'secretary', 'user'], true)) {
             $role = 'user';
         }
         $direct = $role === 'user' && post_raw('certify_without_approval') === '1' ? 1 : 0;
+        if ($role === 'secretary') {
+            $notify = post_raw('notify_approval') === '1' ? 1 : 0;
+        } elseif ($editing !== null) {
+            $notify = (int) ($editing['notify_approval'] ?? 1) === 1 ? 1 : 0;
+        } else {
+            $notify = 1;
+        }
         return [
             'full_name' => post_string('full_name', 200),
             'department' => post_string('department', 150),
@@ -212,6 +222,7 @@ final class UserController
             'role' => $role,
             'active' => post_raw('active') === '1' ? 1 : 0,
             'certify_without_approval' => $direct,
+            'notify_approval' => $notify,
         ];
     }
 

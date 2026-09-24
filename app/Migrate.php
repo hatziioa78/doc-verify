@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 final class Migrate
 {
-    private const VERSION = '6';
+    private const VERSION = '7';
 
     public static function run(): void
     {
@@ -102,6 +102,9 @@ final class Migrate
         }
         if (!self::hasColumn($pdo, 'users', 'password_insecure')) {
             $pdo->exec('ALTER TABLE users ADD COLUMN password_insecure TINYINT(1) NOT NULL DEFAULT 0 AFTER password_hash');
+        }
+        if (!self::hasColumn($pdo, 'users', 'notify_approval')) {
+            $pdo->exec('ALTER TABLE users ADD COLUMN notify_approval TINYINT(1) NOT NULL DEFAULT 1 AFTER certify_without_approval');
         }
     }
 

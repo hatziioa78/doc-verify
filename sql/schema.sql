@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
     role ENUM('manager', 'secretary', 'user') NOT NULL DEFAULT 'user',
     active TINYINT(1) NOT NULL DEFAULT 1,
     certify_without_approval TINYINT(1) NOT NULL DEFAULT 0,
+    notify_approval TINYINT(1) NOT NULL DEFAULT 1,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL,
     PRIMARY KEY (id),

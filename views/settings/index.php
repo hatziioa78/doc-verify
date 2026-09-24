@@ -93,7 +93,7 @@
         <div class="col-12">
             <label class="check-line">
                 <input type="checkbox" name="notify_secretary" value="1" <?= Settings::flag('notify_secretary') ? 'checked' : '' ?>>
-                <span>Να στέλνεται email σε κάθε ενεργή Γραμματεία</span>
+                <span>Να στέλνεται email στη Γραμματεία που έχει ενεργή τη λήψη</span>
             </label>
         </div>
         <div class="col-md-6">

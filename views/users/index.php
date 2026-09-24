@@ -28,6 +28,9 @@
                             <?php if (($person['role'] ?? '') === 'user' && (int) ($person['certify_without_approval'] ?? 0) === 1): ?>
                                 <small>Άμεση επικύρωση</small>
                             <?php endif; ?>
+                            <?php if (($person['role'] ?? '') === 'secretary' && (int) ($person['notify_approval'] ?? 1) !== 1): ?>
+                                <small>Χωρίς email επικύρωσης</small>
+                            <?php endif; ?>
                         </td>
                         <td><?= (int) $person['documents_count'] ?></td>
                         <td><?= (int) $person['active'] === 1 ? 'Ενεργός' : 'Ανενεργός' ?></td>
