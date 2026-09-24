@@ -68,7 +68,7 @@ final class PdfStamper
 
         $pdf->SetTextColor(16, 32, 51);
         $pdf->SetFont('dejavusans', '', 10);
-        $pdf->MultiCell(0, 5.5, 'Η γνησιότητα του εγγράφου επιβεβαιώνεται αποκλειστικά από τον επίσημο σύνδεσμο του μητρώου. Σαρώστε τον κωδικό QR ή ανοίξτε το πλήρες link. Η κατάσταση (ενεργό, ληγμένο, ακυρωμένο) ελέγχεται πάντα ζωντανά και μπορεί να αλλάξει μετά την εκτύπωση αυτής της σελίδας.', 0, 'L');
+        $pdf->MultiCell(0, 5.5, 'Η γνησιότητα του εγγράφου επιβεβαιώνεται αποκλειστικά από τον επίσημο σύνδεσμο του μητρώου. Σαρώστε τον κωδικό QR ή ανοίξτε το πλήρες link. Η κατάσταση (ενεργό ή ακυρωμένο) ελέγχεται πάντα ζωντανά και μπορεί να αλλάξει μετά την εκτύπωση αυτής της σελίδας.', 0, 'L');
         $pdf->Ln(3);
 
         $rows = [
@@ -77,10 +77,6 @@ final class PdfStamper
             'Εκδούσα αρχή / τμήμα' => (string) $doc['issuing_authority'],
             'Ημερομηνία καταχώρησης' => fmt_dt((string) $doc['registered_at']),
         ];
-        $until = fmt_validity((string) ($doc['valid_until'] ?? ''));
-        if ($until !== '') {
-            $rows['Ισχύς έως'] = $until;
-        }
         foreach ($rows as $label => $value) {
             $pdf->SetFont('dejavusans', 'B', 9);
             $pdf->SetTextColor(110, 84, 38);
@@ -136,10 +132,6 @@ final class PdfStamper
     private static function renderEdge(string $overlayPath, array $pages, array $doc, string $verifyUrl, string $edge): void
     {
         $registered = 'Καταχώρηση ' . fmt_dt((string) $doc['registered_at']);
-        $until = fmt_validity((string) ($doc['valid_until'] ?? ''));
-        if ($until !== '') {
-            $registered .= ' · Ισχύς έως ' . $until;
-        }
         $lines = [
             ['bold' => true, 'text' => 'Ψηφιακή σφραγίδα · ' . Settings::headerName()],
             ['bold' => false, 'text' => 'Θέμα: ' . (string) $doc['subject']],

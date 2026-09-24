@@ -32,11 +32,7 @@ final class Documents
         }
         $status = (string) ($filters['status'] ?? '');
         if ($status === 'active') {
-            $where[] = "d.status = 'active' AND (d.valid_until IS NULL OR d.valid_until >= ?)";
-            $params[] = today();
-        } elseif ($status === 'expired') {
-            $where[] = "d.status = 'active' AND d.valid_until IS NOT NULL AND d.valid_until < ?";
-            $params[] = today();
+            $where[] = "d.status = 'active'";
         } elseif ($status === 'cancelled') {
             $where[] = "d.status = 'cancelled'";
         } elseif ($status === 'pending') {
@@ -54,14 +50,6 @@ final class Documents
         if (valid_date((string) ($filters['registered_to'] ?? ''))) {
             $where[] = 'd.registered_at <= ?';
             $params[] = $filters['registered_to'] . ' 23:59:59';
-        }
-        if (valid_date((string) ($filters['valid_from'] ?? ''))) {
-            $where[] = 'd.valid_until >= ?';
-            $params[] = $filters['valid_from'];
-        }
-        if (valid_date((string) ($filters['valid_to'] ?? ''))) {
-            $where[] = 'd.valid_until <= ?';
-            $params[] = $filters['valid_to'];
         }
 
         $sqlWhere = 'WHERE ' . implode(' AND ', $where);
@@ -144,7 +132,6 @@ final class Documents
             'issuing_authority' => $input['issuing_authority'],
             'info' => $input['info'],
             'registered_at' => $registeredAt,
-            'valid_until' => $input['valid_until'],
             'sha256' => $sha,
             'token' => $token,
             'owner_name' => full_name($owner),
@@ -164,9 +151,9 @@ final class Documents
         $pdo = Database::pdo();
         $stmt = $pdo->prepare(
             'INSERT INTO documents
-            (owner_id, subject, protocol_number, issuing_authority, info, registered_at, valid_until, token, status,
+            (owner_id, subject, protocol_number, issuing_authority, info, registered_at, token, status,
              original_name, original_path, certified_path, sha256, created_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
         try {
             $stmt->execute([
@@ -176,7 +163,6 @@ final class Documents
                 $input['issuing_authority'],
                 $input['info'],
                 $registeredAt,
-                self::validityValue((string) $input['valid_until']),
                 $token,
                 $immediate ? 'active' : 'pending',
                 self::safeOriginalName((string) ($file['name'] ?? 'document.pdf')),
@@ -258,7 +244,6 @@ final class Documents
             'protocol_number' => $input['protocol_number'],
             'issuing_authority' => $input['issuing_authority'],
             'info' => $input['info'],
-            'valid_until' => $input['valid_until'],
         ]);
         $temp = null;
         $needsStamp = ($doc['status'] ?? '') !== 'pending' && (string) ($doc['certified_path'] ?? '') !== '';
@@ -267,7 +252,7 @@ final class Documents
         }
         $stmt = Database::pdo()->prepare(
             'UPDATE documents
-             SET subject = ?, protocol_number = ?, issuing_authority = ?, info = ?, valid_until = ?
+             SET subject = ?, protocol_number = ?, issuing_authority = ?, info = ?
              WHERE id = ? AND deleted_at IS NULL'
         );
         try {
@@ -276,7 +261,6 @@ final class Documents
                 $input['protocol_number'],
                 $input['issuing_authority'],
                 $input['info'],
-                self::validityValue((string) $input['valid_until']),
                 (int) $doc['id'],
             ]);
         } catch (Throwable $e) {
@@ -350,11 +334,6 @@ final class Documents
         );
     }
 
-    private static function validityValue(string $value): ?string
-    {
-        return $value === '' ? null : $value;
-    }
-
     public static function summary(string $subject, string $protocol): string
     {
         return '«' . $subject . '» (πρωτ. ' . $protocol . ')';
@@ -384,7 +363,6 @@ final class Documents
             'issuing_authority' => (string) $doc['issuing_authority'],
             'info' => (string) $doc['info'],
             'registered_at' => (string) $doc['registered_at'],
-            'valid_until' => (string) $doc['valid_until'],
             'sha256' => (string) $doc['sha256'],
             'owner_name' => $owner,
         ];

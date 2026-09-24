@@ -8,14 +8,6 @@
         <strong><?= (int) ($stats['active_count'] ?? 0) ?></strong>
     </article>
     <article class="stat-card">
-        <p>Λήγουν σε 30 ημέρες</p>
-        <strong><?= (int) ($stats['soon_count'] ?? 0) ?></strong>
-    </article>
-    <article class="stat-card">
-        <p>Έληξε η ισχύς</p>
-        <strong><?= (int) ($stats['expired_count'] ?? 0) ?></strong>
-    </article>
-    <article class="stat-card">
         <p>Ακυρωμένα</p>
         <strong><?= (int) ($stats['cancelled_count'] ?? 0) ?></strong>
     </article>

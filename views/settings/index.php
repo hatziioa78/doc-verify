@@ -31,11 +31,6 @@
             <label class="form-label" for="footer_credits">Ιδιοκτησία / κατασκευή στο υποσέλιδο</label>
             <textarea class="form-control" id="footer_credits" name="footer_credits" rows="3" maxlength="500"><?= e(Settings::get('footer_credits')) ?></textarea>
         </div>
-        <div class="col-md-4">
-            <label class="form-label" for="default_validity_months">Προεπιλεγμένη ισχύς (μήνες)</label>
-            <input class="form-control" id="default_validity_months" name="default_validity_months" type="number" min="0" max="120" required value="<?= (int) Settings::validityMonths() ?>">
-            <p class="field-hint">Κάθε νέα καταχώρηση προτείνει αυτή τη διάρκεια. Το 0 αφήνει την ισχύ κενή: το έγγραφο δεν λήγει.</p>
-        </div>
         <div class="col-12">
             <p class="form-label">Ψηφιακή σφραγίδα</p>
             <?php $placement = Settings::stampPlacement(); ?>

@@ -11,11 +11,9 @@ final class DashboardController
         $stats = $pdo->query(
             "SELECT
                 SUM(deleted_at IS NULL) AS total,
-                SUM(deleted_at IS NULL AND status = 'active' AND (valid_until IS NULL OR valid_until >= CURDATE())) AS active_count,
-                SUM(deleted_at IS NULL AND status = 'active' AND valid_until IS NOT NULL AND valid_until < CURDATE()) AS expired_count,
+                SUM(deleted_at IS NULL AND status = 'active') AS active_count,
                 SUM(deleted_at IS NULL AND status = 'cancelled') AS cancelled_count,
-                SUM(deleted_at IS NULL AND status = 'pending') AS pending_count,
-                SUM(deleted_at IS NULL AND status = 'active' AND valid_until IS NOT NULL AND valid_until >= CURDATE() AND valid_until <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)) AS soon_count
+                SUM(deleted_at IS NULL AND status = 'pending') AS pending_count
              FROM documents"
         )->fetch() ?: [];
         $userCount = (int) $pdo->query('SELECT COUNT(*) FROM users')->fetchColumn();

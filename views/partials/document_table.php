@@ -13,7 +13,6 @@
                         <th>Θέμα</th>
                         <th>Εκδούσα αρχή</th>
                         <th>Καταχώρηση</th>
-                        <th>Ισχύς έως</th>
                         <th>Κατάσταση</th>
                         <th></th>
                     </tr>
@@ -29,7 +28,6 @@
                             </td>
                             <td><?= e((string) $doc['issuing_authority']) ?></td>
                             <td><?= e(fmt_dt((string) $doc['registered_at'])) ?></td>
-                            <td><?= e(fmt_validity((string) ($doc['valid_until'] ?? '')) ?: 'Χωρίς λήξη') ?></td>
                             <td>
                                 <span class="status-pill <?= e(state_class($state)) ?>"><?= e(state_label($state)) ?></span>
                                 <?php if ($state === 'cancelled' && !empty($doc['cancellation_reason'])): ?>

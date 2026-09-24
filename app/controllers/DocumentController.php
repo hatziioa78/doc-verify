@@ -38,7 +38,6 @@ final class DocumentController
             'protocol_number' => post_string('protocol_number', 120),
             'issuing_authority' => post_string('issuing_authority', 255),
             'info' => self::infoFromPost(),
-            'valid_until' => post_string('valid_until', 10),
         ];
         if ($old['issuing_authority'] === '') {
             $old['issuing_authority'] = trim((string) $user['department']);
@@ -115,7 +114,6 @@ final class DocumentController
             'protocol_number' => post_string('protocol_number', 120),
             'issuing_authority' => post_string('issuing_authority', 255),
             'info' => self::infoFromPost(),
-            'valid_until' => post_string('valid_until', 10),
         ];
         $errors = self::validateMeta($old);
         if ($errors !== []) {
@@ -236,7 +234,7 @@ final class DocumentController
     private static function filters(): array
     {
         $status = query_string('status', 20);
-        if (!in_array($status, ['', 'active', 'expired', 'cancelled', 'pending'], true)) {
+        if (!in_array($status, ['', 'active', 'cancelled', 'pending'], true)) {
             $status = '';
         }
         return [
@@ -249,8 +247,6 @@ final class DocumentController
             'owner_id' => max(0, query_int('owner_id')),
             'registered_from' => query_string('registered_from', 10),
             'registered_to' => query_string('registered_to', 10),
-            'valid_from' => query_string('valid_from', 10),
-            'valid_to' => query_string('valid_to', 10),
         ];
     }
 
@@ -268,7 +264,6 @@ final class DocumentController
             'protocol_number' => '',
             'issuing_authority' => (string) $user['department'],
             'info' => default_info($user),
-            'valid_until' => Settings::defaultValidUntil(),
         ];
     }
 
@@ -290,7 +285,6 @@ final class DocumentController
             'protocol_number' => (string) $doc['protocol_number'],
             'issuing_authority' => (string) $doc['issuing_authority'],
             'info' => (string) $doc['info'],
-            'valid_until' => substr((string) $doc['valid_until'], 0, 10),
         ];
     }
 
@@ -318,9 +312,6 @@ final class DocumentController
         }
         if (mb_strlen($old['info']) < 2) {
             $errors[] = 'Συμπληρώστε τις πληροφορίες του εγγράφου.';
-        }
-        if ($old['valid_until'] !== '' && !valid_date($old['valid_until'])) {
-            $errors[] = 'Η ημερομηνία ισχύος δεν είναι έγκυρη.';
         }
         return $errors;
     }

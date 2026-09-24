@@ -217,7 +217,6 @@ final class SetupController
                 'header_name' => $old['header_name'],
                 'footer_contact' => '',
                 'footer_credits' => '',
-                'default_validity_months' => '12',
                 'stamp_placement' => $old['stamp_placement'],
                 'smtp_host' => $old['host'],
                 'smtp_port' => (string) $old['port'],

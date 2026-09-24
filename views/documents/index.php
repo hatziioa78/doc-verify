@@ -27,7 +27,6 @@
                 <option value="" <?= $filters['status'] === '' ? 'selected' : '' ?>>Όλες</option>
                 <option value="pending" <?= $filters['status'] === 'pending' ? 'selected' : '' ?>>Προς επιβεβαίωση</option>
                 <option value="active" <?= $filters['status'] === 'active' ? 'selected' : '' ?>>Ενεργά</option>
-                <option value="expired" <?= $filters['status'] === 'expired' ? 'selected' : '' ?>>Έληξε η ισχύς</option>
                 <option value="cancelled" <?= $filters['status'] === 'cancelled' ? 'selected' : '' ?>>Ακυρωμένα</option>
             </select>
         </div>
@@ -38,14 +37,6 @@
         <div class="col-md-3">
             <label class="form-label" for="registered_to">Καταχώρηση έως</label>
             <input class="form-control" id="registered_to" name="registered_to" type="date" value="<?= e($filters['registered_to']) ?>">
-        </div>
-        <div class="col-md-3">
-            <label class="form-label" for="valid_from">Ισχύς από</label>
-            <input class="form-control" id="valid_from" name="valid_from" type="date" value="<?= e($filters['valid_from']) ?>">
-        </div>
-        <div class="col-md-3">
-            <label class="form-label" for="valid_to">Ισχύς έως</label>
-            <input class="form-control" id="valid_to" name="valid_to" type="date" value="<?= e($filters['valid_to']) ?>">
         </div>
         <div class="col-md-6">
             <label class="form-label" for="owner_id">Λογαριασμός καταχώρησης</label>

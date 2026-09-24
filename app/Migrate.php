@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 final class Migrate
 {
-    private const VERSION = '4';
+    private const VERSION = '5';
 
     public static function run(): void
     {
@@ -83,7 +83,10 @@ final class Migrate
             $insert->execute(['stamp_placement', 'footer']);
         }
 
-        $pdo->exec('ALTER TABLE documents MODIFY valid_until DATE NULL');
+        if (self::hasColumn($pdo, 'documents', 'valid_until')) {
+            $pdo->exec('ALTER TABLE documents DROP COLUMN valid_until');
+        }
+        $pdo->exec("DELETE FROM settings WHERE skey = 'default_validity_months'");
     }
 
     private static function hasColumn(PDO $pdo, string $table, string $column): bool

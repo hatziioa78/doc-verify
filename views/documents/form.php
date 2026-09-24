@@ -38,14 +38,9 @@ if ($isEdit) {
             <label class="form-label" for="protocol_number">Αριθμός πρωτοκόλλου</label>
             <input class="form-control" id="protocol_number" name="protocol_number" required maxlength="120" value="<?= e($old['protocol_number']) ?>">
         </div>
-        <div class="col-md-8">
+        <div class="col-12">
             <label class="form-label" for="issuing_authority">Εκδούσα αρχή / τμήμα</label>
             <input class="form-control" id="issuing_authority" name="issuing_authority" required maxlength="255" value="<?= e($old['issuing_authority']) ?>">
-        </div>
-        <div class="col-md-4">
-            <label class="form-label" for="valid_until">Έγκυρο έως</label>
-            <input class="form-control" id="valid_until" name="valid_until" type="date" value="<?= e($old['valid_until']) ?>">
-            <p class="field-hint"><?= Settings::validityMonths() === 0 ? 'Η προεπιλογή δεν έχει λήξη. Αφήστε το πεδίο κενό ή ορίστε ημερομηνία.' : 'Προεπιλογή: ' . (int) Settings::validityMonths() . ' μήνες. Κενό πεδίο σημαίνει χωρίς λήξη.' ?></p>
         </div>
         <div class="col-12">
             <label class="form-label" for="info">Πληροφορίες</label>

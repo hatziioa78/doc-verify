@@ -27,7 +27,6 @@ final class SettingsController
         $server = rtrim(post_string('server_url', 255), '/');
         $contact = post_string('footer_contact', 500);
         $credits = post_string('footer_credits', 500);
-        $months = (int) post_raw('default_validity_months');
         $placement = post_string('stamp_placement', 20);
         $errors = [];
         if (mb_strlen($header) < 2) {
@@ -38,9 +37,6 @@ final class SettingsController
         }
         if (!SetupController::validSiteUrl($server)) {
             $errors[] = 'Το URL του διακομιστή πρέπει να αρχίζει από http:// ή https://.';
-        }
-        if ($months < 0 || $months > 120) {
-            $errors[] = 'Η προεπιλεγμένη διάρκεια ισχύος πρέπει να είναι από 0 έως 120 μήνες. Το 0 σημαίνει χωρίς λήξη.';
         }
         if (!in_array($placement, ['appendix', 'header', 'footer'], true)) {
             $errors[] = 'Επιλέξτε πού θα μπαίνει η ψηφιακή σφραγίδα.';
@@ -55,7 +51,6 @@ final class SettingsController
             'server_url' => $server,
             'footer_contact' => $contact,
             'footer_credits' => $credits,
-            'default_validity_months' => (string) $months,
             'stamp_placement' => $placement,
         ]);
         Logger::record((int) $actor['id'], 'settings', 'Ενημέρωση εμφάνισης, URL και μορφής ψηφιακής σφραγίδας');
@@ -385,7 +380,6 @@ final class SettingsController
             'header_name' => 'ΣΦΡΑΓΙΣ',
             'footer_contact' => '',
             'footer_credits' => '',
-            'default_validity_months' => '12',
             'stamp_placement' => 'footer',
         ]);
     }

@@ -22,7 +22,6 @@ final class Settings
             'header_name' => 'ΣΦΡΑΓΙΣ',
             'footer_contact' => '',
             'footer_credits' => '',
-            'default_validity_months' => '12',
             'stamp_placement' => 'footer',
             'smtp_host' => '',
             'smtp_port' => '587',
@@ -111,25 +110,5 @@ final class Settings
             return 'footer';
         }
         return $value;
-    }
-
-    public static function validityMonths(): int
-    {
-        $months = (int) self::get('default_validity_months', '12');
-        if ($months < 0 || $months > 120) {
-            return 12;
-        }
-        return $months;
-    }
-
-    public static function defaultValidUntil(): string
-    {
-        $months = self::validityMonths();
-        if ($months === 0) {
-            return '';
-        }
-        return (new DateTimeImmutable('today'))
-            ->modify('+' . $months . ' months')
-            ->format('Y-m-d');
     }
 }
