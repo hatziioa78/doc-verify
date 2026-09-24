@@ -1,4 +1,4 @@
-<p class="login-system">Σύστημα Έκδοσης &amp; Επικύρωσης Εγγραφών</p>
+<p class="login-system">Σύστημα Έκδοσης &amp; Επικύρωσης Εγγράφων</p>
 <p class="login-version">v<?= e(app_version()) ?></p>
 <div class="login-page">
 <div class="login-shell">
