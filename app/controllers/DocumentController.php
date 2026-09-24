@@ -253,7 +253,7 @@ final class DocumentController
     private static function owners(): array
     {
         return Database::pdo()->query(
-            'SELECT id, last_name, first_name, email FROM users ORDER BY last_name, first_name'
+            'SELECT id, full_name, email FROM users ORDER BY full_name, email'
         )->fetchAll();
     }
 

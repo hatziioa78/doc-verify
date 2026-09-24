@@ -18,7 +18,7 @@ final class Auth
             return null;
         }
         $stmt = Database::pdo()->prepare(
-            'SELECT id, last_name, first_name, department, email, password_hash, role, active, certify_without_approval, created_at
+            'SELECT id, full_name, department, email, password_hash, password_insecure, role, active, certify_without_approval, created_at
              FROM users WHERE id = ? LIMIT 1'
         );
         $stmt->execute([$id]);
@@ -53,44 +53,25 @@ final class Auth
     public static function attempt(string $email, string $password): array
     {
         $email = normalize_email($email);
-        $ip = client_ip();
-        if (self::tooManyAttempts($ip, $email)) {
-            return ['ok' => false, 'error' => 'Πάρα πολλές προσπάθειες σύνδεσης. Δοκιμάστε ξανά σε λίγα λεπτά.'];
-        }
-
         $stmt = Database::pdo()->prepare('SELECT * FROM users WHERE email = ? LIMIT 1');
         $stmt->execute([$email]);
-        $user = $stmt->fetch();
-        $valid = $user && password_verify($password, (string) $user['password_hash']);
+        $user = $stmt->fetch() ?: null;
+        return self::finishAttempt($user, $password, client_ip(), $email);
+    }
 
-        if (!$valid) {
-            self::recordAttempt($ip, $email);
-            Logger::record($user ? (int) $user['id'] : null, 'login_failed', 'Αποτυχημένη προσπάθεια για ' . ($email !== '' ? $email : 'κενό email'));
-            return ['ok' => false, 'error' => 'Τα στοιχεία σύνδεσης δεν είναι σωστά.'];
+    public static function attemptId(int $id, string $password): array
+    {
+        $ip = client_ip();
+        if (!NetworkGuard::onSecureNetwork($ip)) {
+            return ['ok' => false, 'error' => 'Η επιλογή ονόματος επιτρέπεται μόνο από ασφαλές υποδίκτυο.'];
         }
-
-        if ((int) $user['active'] !== 1) {
-            self::recordAttempt($ip, $email);
-            Logger::record((int) $user['id'], 'login_failed', 'Προσπάθεια σύνδεσης σε ανενεργό λογαριασμό');
-            return ['ok' => false, 'error' => 'Ο λογαριασμός είναι ανενεργός.'];
+        $user = null;
+        if ($id > 0) {
+            $stmt = Database::pdo()->prepare('SELECT * FROM users WHERE id = ? LIMIT 1');
+            $stmt->execute([$id]);
+            $user = $stmt->fetch() ?: null;
         }
-
-        if (($user['role'] ?? '') !== 'manager' && !NetworkGuard::allows($ip)) {
-            Logger::record((int) $user['id'], 'login_blocked', 'Απόρριψη σύνδεσης από ' . $ip . ' για ' . $user['email']);
-            return ['ok' => false, 'error' => 'Η σύνδεση χρηστών και γραμματείας επιτρέπεται μόνο από τα εγκεκριμένα εσωτερικά δίκτυα.'];
-        }
-
-        self::clearAttempts($ip, $email);
-        session_regenerate_id(true);
-        $_SESSION['uid'] = (int) $user['id'];
-        $_SESSION['_fp'] = self::fingerprint();
-        $_SESSION['_last'] = time();
-        $_SESSION['_regen'] = time();
-        unset($_SESSION['_magic']);
-        Csrf::rotate();
-        self::flush();
-        Logger::record((int) $user['id'], 'login', 'Επιτυχής σύνδεση του ' . $user['email']);
-        return ['ok' => true, 'error' => ''];
+        return self::finishAttempt($user, $password, $ip, $user ? (string) $user['email'] : '');
     }
 
     public static function logout(): void
@@ -140,12 +121,13 @@ final class Auth
         }
 
         $magicSecretary = (int) ($_SESSION['_magic'] ?? 0) === 1 && ($user['role'] ?? '') === 'secretary';
-        if (($user['role'] ?? '') !== 'manager' && !$magicSecretary && !NetworkGuard::allows(client_ip())) {
+        $block = $magicSecretary ? null : self::networkBlock($user, client_ip());
+        if ($block !== null) {
             $email = (string) $user['email'];
             $id = (int) $user['id'];
             self::logout();
             Logger::record($id, 'login_blocked', 'Διακοπή συνεδρίας εκτός εγκεκριμένου δικτύου για ' . $email);
-            flash('danger', 'Η σύνδεση χρηστών και γραμματείας επιτρέπεται μόνο από τα εγκεκριμένα εσωτερικά δίκτυα.');
+            flash('danger', $block);
             redirect('/login');
         }
 
@@ -192,6 +174,56 @@ final class Auth
     public static function verifyPassword(array $user, string $password): bool
     {
         return $password !== '' && password_verify($password, (string) ($user['password_hash'] ?? ''));
+    }
+
+    private static function finishAttempt(?array $user, string $password, string $ip, string $email): array
+    {
+        if (self::tooManyAttempts($ip, $email)) {
+            return ['ok' => false, 'error' => 'Πάρα πολλές προσπάθειες σύνδεσης. Δοκιμάστε ξανά σε λίγα λεπτά.'];
+        }
+
+        $valid = $user && password_verify($password, (string) $user['password_hash']);
+        if (!$valid) {
+            self::recordAttempt($ip, $email);
+            Logger::record($user ? (int) $user['id'] : null, 'login_failed', 'Αποτυχημένη προσπάθεια για ' . ($email !== '' ? $email : 'κενό email'));
+            return ['ok' => false, 'error' => 'Τα στοιχεία σύνδεσης δεν είναι σωστά.'];
+        }
+
+        if ((int) $user['active'] !== 1) {
+            self::recordAttempt($ip, $email);
+            Logger::record((int) $user['id'], 'login_failed', 'Προσπάθεια σύνδεσης σε ανενεργό λογαριασμό');
+            return ['ok' => false, 'error' => 'Ο λογαριασμός είναι ανενεργός.'];
+        }
+
+        $block = self::networkBlock($user, $ip);
+        if ($block !== null) {
+            Logger::record((int) $user['id'], 'login_blocked', 'Απόρριψη σύνδεσης από ' . $ip . ' για ' . $user['email']);
+            return ['ok' => false, 'error' => $block];
+        }
+
+        self::clearAttempts($ip, $email);
+        session_regenerate_id(true);
+        $_SESSION['uid'] = (int) $user['id'];
+        $_SESSION['_fp'] = self::fingerprint();
+        $_SESSION['_last'] = time();
+        $_SESSION['_regen'] = time();
+        unset($_SESSION['_magic']);
+        Csrf::rotate();
+        self::flush();
+        Logger::record((int) $user['id'], 'login', 'Επιτυχής σύνδεση του ' . $user['email']);
+        return ['ok' => true, 'error' => ''];
+    }
+
+    private static function networkBlock(array $user, string $ip): ?string
+    {
+        $allows = NetworkGuard::allows($ip);
+        if ((int) ($user['password_insecure'] ?? 0) === 1 && !$allows) {
+            return 'Ο κωδικός δεν είναι ασφαλής. Η σύνδεση επιτρέπεται μόνο από ασφαλές υποδίκτυο.';
+        }
+        if (($user['role'] ?? '') !== 'manager' && !$allows) {
+            return 'Η σύνδεση χρηστών και γραμματείας επιτρέπεται μόνο από τα εγκεκριμένα εσωτερικά δίκτυα.';
+        }
+        return null;
     }
 
     private static function tooManyAttempts(string $ip, string $email): bool

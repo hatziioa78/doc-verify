@@ -76,8 +76,8 @@ final class HistoryController
         }
         if (($filters['person'] ?? '') !== '') {
             $term = like_term((string) $filters['person']);
-            $where[] = "(u.last_name LIKE ? ESCAPE '\\\\' OR u.first_name LIKE ? ESCAPE '\\\\' OR u.email LIKE ? ESCAPE '\\\\')";
-            array_push($params, $term, $term, $term);
+            $where[] = "(u.full_name LIKE ? ESCAPE '\\\\' OR u.email LIKE ? ESCAPE '\\\\')";
+            array_push($params, $term, $term);
         }
         if (($filters['q'] ?? '') !== '') {
             $where[] = "l.details LIKE ? ESCAPE '\\\\'";
@@ -98,7 +98,7 @@ final class HistoryController
         $count = Database::pdo()->prepare("SELECT COUNT(*) {$from} {$sqlWhere}");
         $count->execute($params);
         $pager = pager((int) $count->fetchColumn(), $page, $perPage);
-        $sql = "SELECT l.*, u.first_name, u.last_name, u.email,
+        $sql = "SELECT l.*, u.full_name, u.email,
                 d.subject, d.protocol_number, d.deleted_at
             {$from} {$sqlWhere}
             ORDER BY l.id DESC

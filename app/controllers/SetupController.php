@@ -197,16 +197,17 @@ final class SetupController
                 throw new RuntimeException('Η βάση περιέχει ήδη χρήστες. Χρησιμοποιήστε μια κενή βάση για την πρώτη εγκατάσταση.');
             }
             $stamp = now();
+            $password = post_raw('password');
             $stmt = $pdo->prepare(
-                'INSERT INTO users (last_name, first_name, department, email, password_hash, role, active, created_at, updated_at)
+                'INSERT INTO users (full_name, department, email, password_hash, password_insecure, role, active, created_at, updated_at)
                  VALUES (?, ?, ?, ?, ?, \'manager\', 1, ?, ?)'
             );
             $stmt->execute([
-                $old['last_name'],
-                $old['first_name'],
+                $old['full_name'],
                 $old['department'],
                 $old['email'],
-                password_hash(post_raw('password'), PASSWORD_DEFAULT),
+                password_hash($password, PASSWORD_DEFAULT),
+                password_is_insecure($password) ? 1 : 0,
                 $stamp,
                 $stamp,
             ]);
@@ -252,7 +253,7 @@ final class SetupController
             self::redisplay($db, $errors, $old);
         }
 
-        flash('success', 'Η εγκατάσταση ολοκληρώθηκε. Συνδεθείτε με τον λογαριασμό διαχειριστή. ' . $message);
+        flash_password_saved('Η εγκατάσταση ολοκληρώθηκε. Συνδεθείτε με τον λογαριασμό διαχειριστή. ' . $message, post_raw('password'));
         redirect('/login');
     }
 
@@ -275,8 +276,7 @@ final class SetupController
             'header_name' => post_string('header_name', 120),
             'site_url' => post_string('site_url', 255),
             'server_url' => post_string('server_url', 255),
-            'last_name' => post_string('last_name', 100),
-            'first_name' => post_string('first_name', 100),
+            'full_name' => post_string('full_name', 200),
             'department' => post_string('department', 150),
             'email' => normalize_email(post_string('email', 190)),
             'private_networks' => post_raw('private_networks') === '1' ? '1' : '',
@@ -301,8 +301,7 @@ final class SetupController
             'header_name' => 'ΣΦΡΑΓΙΣ',
             'site_url' => $origin,
             'server_url' => $origin,
-            'last_name' => '',
-            'first_name' => '',
+            'full_name' => '',
             'department' => '',
             'email' => '',
             'private_networks' => '1',
@@ -322,11 +321,8 @@ final class SetupController
     private static function managerErrors(array $old, string $password): array
     {
         $errors = [];
-        if (!safe_person_name($old['last_name'])) {
-            $errors[] = 'Συμπληρώστε έγκυρο επώνυμο διαχειριστή.';
-        }
-        if (!safe_person_name($old['first_name'])) {
-            $errors[] = 'Συμπληρώστε έγκυρο όνομα διαχειριστή.';
+        if (!safe_person_name($old['full_name'])) {
+            $errors[] = 'Συμπληρώστε έγκυρο ονοματεπώνυμο διαχειριστή.';
         }
         if ($old['department'] !== '' && mb_strlen($old['department']) > 150) {
             $errors[] = 'Το τμήμα είναι πολύ μεγάλο.';

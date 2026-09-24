@@ -201,7 +201,7 @@ function fmt_dt(?string $value): string
 
 function full_name(array $user): string
 {
-    return trim((string) ($user['last_name'] ?? '') . ' ' . (string) ($user['first_name'] ?? ''));
+    return trim((string) ($user['full_name'] ?? ''));
 }
 
 function default_info(array $user): string
@@ -347,7 +347,7 @@ function nav_on(string $section): string
 
 function safe_person_name(string $value): bool
 {
-    return (bool) preg_match('/^[\p{L}\s.\'’\-]{2,100}$/u', $value);
+    return (bool) preg_match('/^[\p{L}\s.\'’\-]{2,200}$/u', $value);
 }
 
 function normalize_email(string $value): string
@@ -362,13 +362,35 @@ function valid_email(string $value): bool
 
 function password_problem(string $password): ?string
 {
-    if (strlen($password) < 8 || strlen($password) > 128) {
-        return 'Ο κωδικός πρέπει να έχει 8 έως 128 χαρακτήρες.';
-    }
-    if (!preg_match('/\p{L}/u', $password) || !preg_match('/\d/', $password)) {
-        return 'Ο κωδικός χρειάζεται τουλάχιστον ένα γράμμα και έναν αριθμό.';
+    $length = mb_strlen($password);
+    if ($length < 3 || $length > 128) {
+        return 'Ο κωδικός χρειάζεται από 3 έως 128 χαρακτήρες.';
     }
     return null;
+}
+
+function password_is_insecure(string $password): bool
+{
+    return mb_strlen($password) < 8;
+}
+
+function password_policy_hint(): string
+{
+    return 'Από 3 χαρακτήρες, γράμματα ή οτιδήποτε άλλο. Κωδικός μικρότερος από 8 δεν είναι ασφαλής και η σύνδεση επιτρέπεται μόνο από ασφαλές υποδίκτυο, ανεξάρτητα από τον ρόλο.';
+}
+
+function password_insecure_notice(): string
+{
+    return 'Ο κωδικός δεν είναι ασφαλής. Η σύνδεση επιτρέπεται μόνο από ασφαλές υποδίκτυο, ανεξάρτητα από τον ρόλο.';
+}
+
+function flash_password_saved(string $success, string $password): void
+{
+    if (password_is_insecure($password)) {
+        flash('warning', $success . ' ' . password_insecure_notice());
+        return;
+    }
+    flash('success', $success);
 }
 
 function valid_host(string $host): bool

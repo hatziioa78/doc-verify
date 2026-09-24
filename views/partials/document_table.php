@@ -24,7 +24,7 @@
                             <td class="proto"><?= e((string) $doc['protocol_number']) ?></td>
                             <td>
                                 <a class="doc-link" href="<?= e(url('/documents/' . $doc['id'])) ?>"><?= e((string) $doc['subject']) ?></a>
-                                <small><?= e(trim((string) $doc['last_name'] . ' ' . (string) $doc['first_name'])) ?></small>
+                                <small><?= e(full_name($doc)) ?></small>
                             </td>
                             <td><?= e((string) $doc['issuing_authority']) ?></td>
                             <td><?= e(fmt_dt((string) $doc['registered_at'])) ?></td>

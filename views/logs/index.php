@@ -70,7 +70,7 @@ page_head(
                             <td class="proto"><?= e((string) $row['ip']) ?></td>
                             <td><span class="act act-<?= e((string) $row['action']) ?>"><?= e(Logger::label((string) $row['action'])) ?></span></td>
                             <?php if (!$isHistory || ($currentUser['role'] ?? '') === 'manager'): ?>
-                                <td><?= e(trim((string) ($row['last_name'] ?? '') . ' ' . (string) ($row['first_name'] ?? ''))) ?><?php if (!empty($row['email'])): ?><small><?= e((string) $row['email']) ?></small><?php endif; ?></td>
+                                <td><?= e(full_name($row)) ?><?php if (!empty($row['email'])): ?><small><?= e((string) $row['email']) ?></small><?php endif; ?></td>
                             <?php endif; ?>
                             <td>
                                 <?= e((string) $row['details']) ?>

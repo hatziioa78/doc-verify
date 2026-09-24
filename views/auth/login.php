@@ -23,8 +23,18 @@
         <?php endif; ?>
         <form method="post" action="<?= e(url('/login')) ?>" class="stack-form">
             <?= csrf_field() ?>
-            <label class="form-label" for="email">Email</label>
-            <input class="form-control" id="email" name="email" type="email" autocomplete="username" required maxlength="190" value="<?= e($email) ?>">
+            <?php if (!empty($secure)): ?>
+                <label class="form-label" for="user_id">Ονοματεπώνυμο</label>
+                <select class="form-select" id="user_id" name="user_id" required>
+                    <option value="">Επιλέξτε</option>
+                    <?php foreach ($names as $person): ?>
+                        <option value="<?= (int) $person['id'] ?>" <?= (int) $userId === (int) $person['id'] ? 'selected' : '' ?>><?= e((string) $person['label']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            <?php else: ?>
+                <label class="form-label" for="email">Email</label>
+                <input class="form-control" id="email" name="email" type="email" autocomplete="username" required maxlength="190" value="<?= e($email) ?>">
+            <?php endif; ?>
             <label class="form-label" for="password">Κωδικός</label>
             <div class="password-row">
                 <input class="form-control" id="password" name="password" type="password" autocomplete="current-password" required>

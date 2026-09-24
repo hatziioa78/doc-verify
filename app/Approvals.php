@@ -113,7 +113,7 @@ final class Approvals
     private static function secretaries(): array
     {
         return Database::pdo()->query(
-            "SELECT id, email, first_name, last_name FROM users WHERE role = 'secretary' AND active = 1 ORDER BY id"
+            "SELECT id, email, full_name FROM users WHERE role = 'secretary' AND active = 1 ORDER BY id"
         )->fetchAll();
     }
 
@@ -135,7 +135,7 @@ final class Approvals
 
     private static function html(array $doc, string $link): string
     {
-        $owner = trim((string) $doc['last_name'] . ' ' . (string) $doc['first_name']);
+        $owner = full_name($doc);
         return '<p>Υποβλήθηκε έγγραφο προς επιβεβαίωση από τη Γραμματεία.</p>'
             . '<p><strong>Θέμα:</strong> ' . e((string) $doc['subject']) . '<br>'
             . '<strong>Αριθμός πρωτοκόλλου:</strong> ' . e((string) $doc['protocol_number']) . '<br>'
@@ -146,7 +146,7 @@ final class Approvals
 
     private static function text(array $doc, string $link): string
     {
-        $owner = trim((string) $doc['last_name'] . ' ' . (string) $doc['first_name']);
+        $owner = full_name($doc);
         return "Υποβλήθηκε έγγραφο προς επιβεβαίωση από τη Γραμματεία.\n"
             . 'Θέμα: ' . $doc['subject'] . "\n"
             . 'Αριθμός πρωτοκόλλου: ' . $doc['protocol_number'] . "\n"

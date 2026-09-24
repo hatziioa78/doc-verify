@@ -62,7 +62,7 @@ $org = Settings::headerName();
             </div>
             <?php if ($currentUser): ?>
                 <div class="user-chip">
-                    <span class="user-avatar"><?= e(mb_substr((string) $currentUser['last_name'], 0, 1)) ?></span>
+                    <span class="user-avatar"><?= e(mb_substr(full_name($currentUser), 0, 1)) ?></span>
                     <span>
                         <strong><?= e(full_name($currentUser)) ?></strong>
                         <small><?= e(role_label((string) ($currentUser['role'] ?? 'user'))) ?></small>

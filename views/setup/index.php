@@ -102,12 +102,8 @@
             <h2><?= icon('user') ?> Διαχειριστής</h2>
             <div class="row g-3">
                 <div class="col-md-6">
-                    <label class="form-label" for="last_name">Επώνυμο</label>
-                    <input class="form-control" id="last_name" name="last_name" required value="<?= e($old['last_name']) ?>">
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label" for="first_name">Όνομα</label>
-                    <input class="form-control" id="first_name" name="first_name" required value="<?= e($old['first_name']) ?>">
+                    <label class="form-label" for="full_name">Ονοματεπώνυμο</label>
+                    <input class="form-control" id="full_name" name="full_name" required maxlength="200" value="<?= e($old['full_name']) ?>">
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" for="department">Τμήμα</label>
@@ -120,6 +116,7 @@
                 <div class="col-md-6">
                     <label class="form-label" for="password">Κωδικός</label>
                     <input class="form-control" id="password" name="password" type="password" autocomplete="new-password" required>
+                    <p class="field-hint"><?= e(password_policy_hint()) ?></p>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" for="password_confirm">Επιβεβαίωση</label>

@@ -1,7 +1,7 @@
 <?php
 $state = document_state($doc);
-$owner = trim((string) $doc['last_name'] . ' ' . (string) $doc['first_name']);
-$canceller = trim((string) ($doc['canceller_last_name'] ?? '') . ' ' . (string) ($doc['canceller_first_name'] ?? ''));
+$owner = full_name($doc);
+$canceller = trim((string) ($doc['canceller_full_name'] ?? ''));
 ?>
 <?php page_head('Έγγραφο μητρώου', (string) $doc['subject'], 'Η σελίδα επαλήθευσης είναι η ζωντανή εικόνα του εγγράφου. Η ακύρωση φαίνεται αμέσως σε όποιον σαρώνει το QR.'); ?>
 <?php if ($state === 'pending'): ?>
@@ -23,7 +23,7 @@ $canceller = trim((string) ($doc['canceller_last_name'] ?? '') . ' ' . (string) 
             <div><dt>Καταχώρηση</dt><dd><?= e(fmt_dt((string) $doc['registered_at'])) ?></dd></div>
             <div><dt>Καταχωρίστηκε από</dt><dd><?= e($owner) ?><small><?= e((string) $doc['owner_email']) ?></small></dd></div>
             <?php if (!empty($doc['confirmed_by'])): ?>
-                <div><dt>Επιβεβαιώθηκε από</dt><dd><?= e(trim((string) $doc['confirmer_last_name'] . ' ' . (string) $doc['confirmer_first_name'])) ?><small><?= e(fmt_dt((string) $doc['confirmed_at'])) ?></small></dd></div>
+                <div><dt>Επιβεβαιώθηκε από</dt><dd><?= e(trim((string) ($doc['confirmer_full_name'] ?? ''))) ?><small><?= e(fmt_dt((string) $doc['confirmed_at'])) ?></small></dd></div>
             <?php endif; ?>
             <div><dt>Αρχικό αρχείο</dt><dd><?= e((string) $doc['original_name']) ?></dd></div>
         </dl>

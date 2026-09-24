@@ -22,6 +22,12 @@ final class NetworkGuard
         return (int) Database::pdo()->query('SELECT COUNT(*) FROM allowed_networks')->fetchColumn() > 0;
     }
 
+    public static function onSecureNetwork(?string $ip = null): bool
+    {
+        $ip ??= client_ip();
+        return self::isRestricted() && self::allows($ip);
+    }
+
     public static function allows(string $ip): bool
     {
         $networks = self::list();

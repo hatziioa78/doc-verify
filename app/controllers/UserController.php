@@ -9,7 +9,7 @@ final class UserController
         Auth::requireManager();
         $users = Database::pdo()->query(
             "SELECT u.*, (SELECT COUNT(*) FROM documents d WHERE d.owner_id = u.id AND d.deleted_at IS NULL) AS documents_count
-             FROM users u ORDER BY FIELD(u.role, 'manager', 'secretary', 'user'), u.last_name, u.first_name"
+             FROM users u ORDER BY FIELD(u.role, 'manager', 'secretary', 'user'), u.full_name"
         )->fetchAll();
         render('users/index', [
             'title' => 'Χρήστες',
@@ -42,17 +42,18 @@ final class UserController
             ]);
         }
         $stamp = now();
+        $password = post_raw('password');
         $stmt = Database::pdo()->prepare(
-            'INSERT INTO users (last_name, first_name, department, email, password_hash, role, active, certify_without_approval, created_at, updated_at)
+            'INSERT INTO users (full_name, department, email, password_hash, password_insecure, role, active, certify_without_approval, created_at, updated_at)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
         try {
             $stmt->execute([
-                $old['last_name'],
-                $old['first_name'],
+                $old['full_name'],
                 $old['department'],
                 $old['email'],
-                password_hash(post_raw('password'), PASSWORD_DEFAULT),
+                password_hash($password, PASSWORD_DEFAULT),
+                password_is_insecure($password) ? 1 : 0,
                 $old['role'],
                 $old['active'],
                 $old['certify_without_approval'],
@@ -69,7 +70,7 @@ final class UserController
             ]);
         }
         Logger::record((int) $actor['id'], 'user_create', 'Δημιουργία χρήστη ' . $old['email'] . ' (' . role_label($old['role']) . ')');
-        flash('success', 'Ο χρήστης δημιουργήθηκε.');
+        flash_password_saved('Ο χρήστης δημιουργήθηκε.', $password);
         redirect('/users');
     }
 
@@ -103,14 +104,14 @@ final class UserController
         }
         if ($password !== '') {
             $stmt = Database::pdo()->prepare(
-                'UPDATE users SET last_name = ?, first_name = ?, department = ?, email = ?, password_hash = ?, role = ?, active = ?, certify_without_approval = ?, updated_at = ? WHERE id = ?'
+                'UPDATE users SET full_name = ?, department = ?, email = ?, password_hash = ?, password_insecure = ?, role = ?, active = ?, certify_without_approval = ?, updated_at = ? WHERE id = ?'
             );
-            $params = [$old['last_name'], $old['first_name'], $old['department'], $old['email'], password_hash($password, PASSWORD_DEFAULT), $old['role'], $old['active'], $old['certify_without_approval'], now(), $id];
+            $params = [$old['full_name'], $old['department'], $old['email'], password_hash($password, PASSWORD_DEFAULT), password_is_insecure($password) ? 1 : 0, $old['role'], $old['active'], $old['certify_without_approval'], now(), $id];
         } else {
             $stmt = Database::pdo()->prepare(
-                'UPDATE users SET last_name = ?, first_name = ?, department = ?, email = ?, role = ?, active = ?, certify_without_approval = ?, updated_at = ? WHERE id = ?'
+                'UPDATE users SET full_name = ?, department = ?, email = ?, role = ?, active = ?, certify_without_approval = ?, updated_at = ? WHERE id = ?'
             );
-            $params = [$old['last_name'], $old['first_name'], $old['department'], $old['email'], $old['role'], $old['active'], $old['certify_without_approval'], now(), $id];
+            $params = [$old['full_name'], $old['department'], $old['email'], $old['role'], $old['active'], $old['certify_without_approval'], now(), $id];
         }
         try {
             $stmt->execute($params);
@@ -125,7 +126,11 @@ final class UserController
         }
         Logger::record((int) $actor['id'], 'user_update', 'Ενημέρωση χρήστη ' . $old['email']);
         Auth::flush();
-        flash('success', 'Τα στοιχεία του χρήστη αποθηκεύτηκαν.');
+        if ($password !== '') {
+            flash_password_saved('Τα στοιχεία του χρήστη αποθηκεύτηκαν.', $password);
+        } else {
+            flash('success', 'Τα στοιχεία του χρήστη αποθηκεύτηκαν.');
+        }
         redirect('/users');
     }
 
@@ -172,8 +177,7 @@ final class UserController
     private static function blank(): array
     {
         return [
-            'last_name' => '',
-            'first_name' => '',
+            'full_name' => '',
             'department' => '',
             'email' => '',
             'role' => 'user',
@@ -185,8 +189,7 @@ final class UserController
     private static function fromUser(array $user): array
     {
         return [
-            'last_name' => (string) $user['last_name'],
-            'first_name' => (string) $user['first_name'],
+            'full_name' => (string) $user['full_name'],
             'department' => (string) $user['department'],
             'email' => (string) $user['email'],
             'role' => (string) $user['role'],
@@ -203,8 +206,7 @@ final class UserController
         }
         $direct = $role === 'user' && post_raw('certify_without_approval') === '1' ? 1 : 0;
         return [
-            'last_name' => post_string('last_name', 100),
-            'first_name' => post_string('first_name', 100),
+            'full_name' => post_string('full_name', 200),
             'department' => post_string('department', 150),
             'email' => normalize_email(post_string('email', 190)),
             'role' => $role,
@@ -216,11 +218,8 @@ final class UserController
     private static function validate(array $old, ?array $editing, string $password): array
     {
         $errors = [];
-        if (!safe_person_name($old['last_name'])) {
-            $errors[] = 'Συμπληρώστε έγκυρο επώνυμο.';
-        }
-        if (!safe_person_name($old['first_name'])) {
-            $errors[] = 'Συμπληρώστε έγκυρο όνομα.';
+        if (!safe_person_name($old['full_name'])) {
+            $errors[] = 'Συμπληρώστε έγκυρο ονοματεπώνυμο.';
         }
         if (!valid_email($old['email'])) {
             $errors[] = 'Το email δεν είναι έγκυρο.';

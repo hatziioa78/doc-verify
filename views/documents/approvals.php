@@ -22,7 +22,7 @@
                         <tr>
                             <td class="proto"><?= e((string) $doc['protocol_number']) ?></td>
                             <td><a class="doc-link" href="<?= e(url('/documents/' . $doc['id'])) ?>"><?= e((string) $doc['subject']) ?></a></td>
-                            <td><?= e(trim((string) $doc['last_name'] . ' ' . (string) $doc['first_name'])) ?></td>
+                            <td><?= e(full_name($doc)) ?></td>
                             <td><?= e(fmt_dt((string) $doc['registered_at'])) ?></td>
                             <td class="row-actions">
                                 <form method="post" action="<?= e(url('/documents/' . $doc['id'] . '/approve')) ?>">

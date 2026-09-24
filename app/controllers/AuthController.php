@@ -9,11 +9,7 @@ final class AuthController
         if (Auth::check()) {
             redirect('/');
         }
-        render('auth/login', [
-            'title' => 'Σύνδεση',
-            'email' => '',
-            'error' => '',
-        ], 'layouts/guest');
+        self::showLogin('', '', 0);
     }
 
     public static function login(): void
@@ -21,14 +17,20 @@ final class AuthController
         if (Auth::check()) {
             redirect('/');
         }
+        $password = post_raw('password');
+        if (NetworkGuard::onSecureNetwork()) {
+            $userId = (int) post_raw('user_id');
+            $result = Auth::attemptId($userId, $password);
+            if (!$result['ok']) {
+                self::showLogin($result['error'], '', $userId);
+            }
+            redirect('/');
+        }
+
         $email = normalize_email(post_string('email', 190));
-        $result = Auth::attempt($email, post_raw('password'));
+        $result = Auth::attempt($email, $password);
         if (!$result['ok']) {
-            render('auth/login', [
-                'title' => 'Σύνδεση',
-                'email' => $email,
-                'error' => $result['error'],
-            ], 'layouts/guest');
+            self::showLogin($result['error'], $email, 0);
         }
         redirect('/');
     }
@@ -73,10 +75,46 @@ final class AuthController
                 'errors' => $errors,
             ]);
         }
-        $stmt = Database::pdo()->prepare('UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?');
-        $stmt->execute([password_hash($next, PASSWORD_DEFAULT), now(), (int) $user['id']]);
+        $insecure = password_is_insecure($next) ? 1 : 0;
+        $stmt = Database::pdo()->prepare('UPDATE users SET password_hash = ?, password_insecure = ?, updated_at = ? WHERE id = ?');
+        $stmt->execute([password_hash($next, PASSWORD_DEFAULT), $insecure, now(), (int) $user['id']]);
         Logger::record((int) $user['id'], 'password', 'Αλλαγή κωδικού του ' . $user['email']);
-        flash('success', 'Ο κωδικός άλλαξε.');
+        flash_password_saved('Ο κωδικός άλλαξε.', $next);
         redirect('/account');
+    }
+
+    private static function showLogin(string $error, string $email, int $userId): never
+    {
+        $secure = NetworkGuard::onSecureNetwork();
+        render('auth/login', [
+            'title' => 'Σύνδεση',
+            'secure' => $secure,
+            'names' => $secure ? self::loginChoices() : [],
+            'email' => $email,
+            'userId' => $userId,
+            'error' => $error,
+        ], 'layouts/guest');
+    }
+
+    private static function loginChoices(): array
+    {
+        $rows = Database::pdo()->query(
+            'SELECT id, full_name, email FROM users WHERE active = 1 ORDER BY full_name, email'
+        )->fetchAll();
+        $counts = [];
+        foreach ($rows as $row) {
+            $name = full_name($row);
+            $counts[$name] = ($counts[$name] ?? 0) + 1;
+        }
+        $choices = [];
+        foreach ($rows as $row) {
+            $name = full_name($row);
+            $label = $name;
+            if (($counts[$name] ?? 0) > 1) {
+                $label .= ' (' . (string) $row['email'] . ')';
+            }
+            $choices[] = ['id' => (int) $row['id'], 'label' => $label];
+        }
+        return $choices;
     }
 }

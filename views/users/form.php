@@ -3,13 +3,9 @@
 <form class="paper-card stack-form" method="post" action="<?= e(url($editing ? '/users/' . $editing['id'] : '/users')) ?>">
     <?= csrf_field() ?>
     <div class="row g-3">
-        <div class="col-md-6">
-            <label class="form-label" for="last_name">Επώνυμο</label>
-            <input class="form-control" id="last_name" name="last_name" required maxlength="100" value="<?= e($old['last_name']) ?>">
-        </div>
-        <div class="col-md-6">
-            <label class="form-label" for="first_name">Όνομα</label>
-            <input class="form-control" id="first_name" name="first_name" required maxlength="100" value="<?= e($old['first_name']) ?>">
+        <div class="col-12">
+            <label class="form-label" for="full_name">Ονοματεπώνυμο</label>
+            <input class="form-control" id="full_name" name="full_name" required maxlength="200" value="<?= e($old['full_name']) ?>">
         </div>
         <div class="col-md-6">
             <label class="form-label" for="department">Τμήμα</label>
@@ -22,6 +18,10 @@
         <div class="col-md-6">
             <label class="form-label" for="password">Κωδικός<?= $editing ? ' (κενό = χωρίς αλλαγή)' : '' ?></label>
             <input class="form-control" id="password" name="password" type="password" autocomplete="new-password" <?= $editing ? '' : 'required' ?>>
+            <p class="field-hint"><?= e(password_policy_hint()) ?></p>
+            <?php if ($editing && (int) ($editing['password_insecure'] ?? 0) === 1): ?>
+                <div class="alert alert-warning" role="alert"><?= e(password_insecure_notice()) ?></div>
+            <?php endif; ?>
         </div>
         <div class="col-md-6">
             <label class="form-label" for="role">Ρόλος</label>

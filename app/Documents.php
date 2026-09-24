@@ -27,8 +27,8 @@ final class Documents
         }
         if (($filters['person'] ?? '') !== '') {
             $term = like_term((string) $filters['person']);
-            $where[] = "(u.last_name LIKE ? ESCAPE '\\\\' OR u.first_name LIKE ? ESCAPE '\\\\' OR u.email LIKE ? ESCAPE '\\\\')";
-            array_push($params, $term, $term, $term);
+            $where[] = "(u.full_name LIKE ? ESCAPE '\\\\' OR u.email LIKE ? ESCAPE '\\\\')";
+            array_push($params, $term, $term);
         }
         $status = (string) ($filters['status'] ?? '');
         if ($status === 'active') {
@@ -342,9 +342,9 @@ final class Documents
     private static function selectSql(): string
     {
         return 'SELECT d.*,
-                u.first_name, u.last_name, u.email AS owner_email, u.department AS owner_department,
-                c.first_name AS canceller_first_name, c.last_name AS canceller_last_name,
-                f.first_name AS confirmer_first_name, f.last_name AS confirmer_last_name
+                u.full_name, u.email AS owner_email, u.department AS owner_department,
+                c.full_name AS canceller_full_name,
+                f.full_name AS confirmer_full_name
             FROM documents d
             JOIN users u ON u.id = d.owner_id
             LEFT JOIN users c ON c.id = d.cancelled_by
@@ -355,7 +355,7 @@ final class Documents
     {
         $owner = trim((string) ($doc['owner_name'] ?? ''));
         if ($owner === '') {
-            $owner = trim((string) ($doc['last_name'] ?? '') . ' ' . (string) ($doc['first_name'] ?? ''));
+            $owner = full_name($doc);
         }
         return [
             'subject' => (string) $doc['subject'],

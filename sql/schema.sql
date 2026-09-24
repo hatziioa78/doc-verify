@@ -1,10 +1,10 @@
 CREATE TABLE IF NOT EXISTS users (
     id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-    last_name VARCHAR(100) NOT NULL,
-    first_name VARCHAR(100) NOT NULL,
+    full_name VARCHAR(200) NOT NULL,
     department VARCHAR(150) NOT NULL DEFAULT '',
     email VARCHAR(190) NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
+    password_insecure TINYINT(1) NOT NULL DEFAULT 0,
     role ENUM('manager', 'secretary', 'user') NOT NULL DEFAULT 'user',
     active TINYINT(1) NOT NULL DEFAULT 1,
     certify_without_approval TINYINT(1) NOT NULL DEFAULT 0,

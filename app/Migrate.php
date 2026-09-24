@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 final class Migrate
 {
-    private const VERSION = '5';
+    private const VERSION = '6';
 
     public static function run(): void
     {
@@ -87,6 +87,22 @@ final class Migrate
             $pdo->exec('ALTER TABLE documents DROP COLUMN valid_until');
         }
         $pdo->exec("DELETE FROM settings WHERE skey = 'default_validity_months'");
+
+        if (!self::hasColumn($pdo, 'users', 'full_name')) {
+            $pdo->exec("ALTER TABLE users ADD COLUMN full_name VARCHAR(200) NOT NULL DEFAULT '' AFTER id");
+            if (self::hasColumn($pdo, 'users', 'last_name')) {
+                $pdo->exec("UPDATE users SET full_name = TRIM(CONCAT(last_name, ' ', first_name))");
+            }
+        }
+        if (self::hasColumn($pdo, 'users', 'first_name')) {
+            $pdo->exec('ALTER TABLE users DROP COLUMN first_name');
+        }
+        if (self::hasColumn($pdo, 'users', 'last_name')) {
+            $pdo->exec('ALTER TABLE users DROP COLUMN last_name');
+        }
+        if (!self::hasColumn($pdo, 'users', 'password_insecure')) {
+            $pdo->exec('ALTER TABLE users ADD COLUMN password_insecure TINYINT(1) NOT NULL DEFAULT 0 AFTER password_hash');
+        }
     }
 
     private static function hasColumn(PDO $pdo, string $table, string $column): bool
